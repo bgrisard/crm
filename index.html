@@ -244,10 +244,15 @@
     background:#fff;
     border:1px solid var(--line);
     border-radius:10px;
-    overflow:hidden;
     box-shadow: var(--shadow-card);
   }
+  .table-scroll{
+    overflow-x:auto;
+    border-radius:10px 10px 0 0;
+  }
   table{ width:100%; border-collapse: collapse; font-size:13px; }
+  table tr:first-child th:first-child{ border-top-left-radius:10px; }
+  table tr:first-child th:last-child{ border-top-right-radius:10px; }
   thead th{
     text-align:left;
     padding: 10px 14px;
@@ -258,6 +263,7 @@
     letter-spacing:0.5px;
     font-weight:600;
     position: sticky; top:64px;
+    z-index:10;
     cursor:pointer;
     user-select:none;
     white-space:nowrap;
@@ -286,12 +292,21 @@
   .badge-open{ background: var(--warn-bg); color: var(--warn); }
   .badge-lost{ background: #eef0f2; color: var(--slate-500); }
 
-  .fu-checkbox{ width:16px; height:16px; cursor:pointer; accent-color: var(--teal); }
-  .fu-select, .fu-date{
-    font-size:12px; padding:4px 6px; border:1px solid var(--line); border-radius:5px;
-    background:#fff; color: var(--navy-900); font-family: inherit;
+  .fu-checkbox{ width:15px; height:15px; cursor:pointer; accent-color: var(--teal); flex:none; }
+  .fu-cell{
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 4px 8px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.2px;
+    white-space:nowrap;
   }
-  .fu-date{ font-family: var(--font-mono); }
+  .fu-cell.fu-done{ background: var(--success-bg); color: var(--success); }
+  .fu-cell.fu-overdue{ background: var(--danger-bg); color: var(--danger); }
+  .fu-cell.fu-soon{ background: var(--warn-bg); color: var(--warn); }
+  .fu-cell.fu-upcoming{ background: #eef1f4; color: var(--slate-500); }
+  .fu-cell.fu-nodate{ background: transparent; color: var(--slate-300); font-weight:500; }
   td.contact-cell{ font-size:12px; color: var(--slate-500); }
   td.contact-cell .email{ color: var(--navy-900); }
 
@@ -502,7 +517,7 @@
       </div>
 
       <div class="table-wrap">
-        <div style="overflow-x:auto;">
+        <div class="table-scroll">
           <table id="pipelineTable">
             <thead><tr id="pipelineHead"></tr></thead>
             <tbody id="pipelineBody"></tbody>
@@ -611,26 +626,9 @@
           <option value="lost">Lost</option>
         </select>
       </div>
-      <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap; align-items:flex-end;">
-        <div>
-          <div class="field-label" style="margin-bottom:6px;">Followed up?</div>
-          <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" class="fu-checkbox" id="modalFollowedUp"> Yes</label>
-        </div>
-        <div>
-          <div class="field-label" style="margin-bottom:6px;">Follow-up type</div>
-          <select class="fu-select" id="modalFollowUpType">
-            <option value="">—</option>
-            <option value="Call">Call</option>
-            <option value="Email">Email</option>
-            <option value="Text">Text</option>
-            <option value="In Person">In Person</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div>
-          <div class="field-label" style="margin-bottom:6px;">Last follow-up date</div>
-          <input type="date" class="fu-date" id="modalLastFollowUp">
-        </div>
+      <div style="margin-top:16px;">
+        <div class="field-label" style="margin-bottom:8px;">Follow-ups</div>
+        <div id="modalFollowUps" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
       <div style="margin-top:16px;">
         <div class="field-label" style="margin-bottom:6px;">Team note</div>
@@ -817,8 +815,11 @@ function getFilteredQuotes(){
     arr = arr.slice().sort((a,b)=>{
       let av = a[key], bv = b[key];
       if(av instanceof Date || bv instanceof Date){
-        av = av ? av.getTime() : -Infinity; bv = bv ? bv.getTime() : -Infinity;
+        av = av ? av.getTime() : null; bv = bv ? bv.getTime() : null;
       }
+      if(av===null && bv===null) return 0;
+      if(av===null) return 1;
+      if(bv===null) return -1;
       if(typeof av === 'string') av = av.toLowerCase();
       if(typeof bv === 'string') bv = bv.toLowerCase();
       if(av < bv) return -1*dir;
@@ -957,12 +958,71 @@ const PIPELINE_COLS = [
   {key:'_startDate', label:'Start Date'},
   {key:'_value', label:'Amount', num:true},
   {key:null, label:'Stage'},
-  {key:null, label:'Followed Up'},
-  {key:null, label:'Follow-up Type'},
-  {key:null, label:'Last Follow-up'}
+  {key:'_daysOld', label:'Days Old', num:true},
+  {key:'_fu0Due', label:'Follow-up 1'},
+  {key:'_fu1Due', label:'Follow-up 2'},
+  {key:'_fu2Due', label:'Follow-up 3'}
 ];
 
-const FOLLOWUP_TYPES = ['Call','Email','Text','In Person','Other'];
+const FOLLOWUP_OFFSETS_HOURS = [48, 24*7, 24*14]; // 48h, 7 days, 14 days after quote created
+
+function followUpDueMs(q, idx){
+  return q._date ? q._date.getTime() + FOLLOWUP_OFFSETS_HOURS[idx]*3600000 : null;
+}
+function getFollowUps(rowId){
+  const rec = state.notes[rowId] || {};
+  const arr = (rec.followUps || []).slice(0,3);
+  while(arr.length < 3) arr.push({completed:false, completedAt:null});
+  return arr;
+}
+function followUpStatus(q, idx){
+  const fu = getFollowUps(q._rowId)[idx];
+  const dueMs = followUpDueMs(q, idx);
+  if(fu.completed) return {state:'done', dueMs, fu};
+  if(dueMs===null) return {state:'nodate', dueMs, fu};
+  const hoursUntil = (dueMs - Date.now())/3600000;
+  if(hoursUntil < 0) return {state:'overdue', dueMs, fu};
+  if(hoursUntil <= 24) return {state:'soon', dueMs, fu};
+  return {state:'upcoming', dueMs, fu};
+}
+function renderFollowUpCell(q, idx){
+  const st = followUpStatus(q, idx);
+  const cls = {done:'fu-done', overdue:'fu-overdue', soon:'fu-soon', upcoming:'fu-upcoming', nodate:'fu-nodate'}[st.state];
+  let label;
+  if(st.state === 'done'){
+    label = 'Done' + (st.fu.completedAt ? ' '+new Date(st.fu.completedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
+  } else if(st.state === 'nodate'){
+    label = '—';
+  } else {
+    const dueLabel = new Date(st.dueMs).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    label = st.state === 'overdue' ? 'Overdue '+dueLabel : st.state === 'soon' ? 'Due soon '+dueLabel : 'Due '+dueLabel;
+  }
+  return `<div class="fu-cell ${cls}">
+    <input type="checkbox" class="fu-checkbox" data-fu-idx="${idx}" ${st.fu.completed?'checked':''}>
+    <span>${label}</span>
+  </div>`;
+}
+async function toggleFollowUp(rowId, idx, completed){
+  const rec = state.notes[rowId] || {};
+  const followUps = (rec.followUps || []).slice(0,3);
+  while(followUps.length < 3) followUps.push({completed:false, completedAt:null});
+  followUps[idx] = { completed, completedAt: completed ? new Date().toISOString() : null };
+  rec.followUps = followUps;
+  rec.updatedAt = new Date().toISOString();
+  state.notes[rowId] = rec;
+  await saveShared('crm_notes', state.notes);
+}
+
+function decorateQuotesForDisplay(arr){
+  const now = Date.now();
+  for(const q of arr){
+    q._daysOld = q._date ? Math.floor((now - q._date.getTime())/86400000) : null;
+    q._fu0Due = followUpDueMs(q, 0);
+    q._fu1Due = followUpDueMs(q, 1);
+    q._fu2Due = followUpDueMs(q, 2);
+  }
+  return arr;
+}
 
 function renderPipelineHead(){
   const tr = document.getElementById('pipelineHead');
@@ -983,6 +1043,7 @@ function renderPipelineHead(){
 
 function renderPipeline(){
   renderPipelineHead();
+  decorateQuotesForDisplay(state.quotes);
   const filtered = getFilteredQuotes();
   const totalPages = Math.max(1, Math.ceil(filtered.length/state.pageSize));
   state.page = Math.min(state.page, totalPages);
@@ -993,10 +1054,7 @@ function renderPipeline(){
   body.innerHTML = pageRows.map(q=>{
     const dateStr = q._date ? q._date.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
     const startDateStr = q._startDate ? q._startDate.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
-    const rec = state.notes[q._rowId] || {};
-    const typeOpts = ['<option value="">—</option>'].concat(
-      FOLLOWUP_TYPES.map(t=>`<option value="${t}" ${rec.followUpType===t?'selected':''}>${t}</option>`)
-    ).join('');
+    const daysOldStr = q._daysOld===null ? '—' : q._daysOld.toLocaleString();
     return `<tr data-id="${encodeURIComponent(q._rowId)}">
       <td class="row-accent"><div class="${accentClass(q)}"></div></td>
       <td class="num">${escapeHtml(q._rowId)}</td>
@@ -1008,30 +1066,26 @@ function renderPipeline(){
       <td>${startDateStr}</td>
       <td class="num">${fmtMoney(q._value)}</td>
       <td>${stageBadge(q)}</td>
-      <td><input type="checkbox" class="fu-checkbox" data-fu="followedUp" ${rec.followedUp?'checked':''}></td>
-      <td><select class="fu-select" data-fu="followUpType">${typeOpts}</select></td>
-      <td><input type="date" class="fu-date" data-fu="lastFollowUpDate" value="${rec.lastFollowUpDate||''}"></td>
+      <td class="num">${daysOldStr}</td>
+      <td>${renderFollowUpCell(q,0)}</td>
+      <td>${renderFollowUpCell(q,1)}</td>
+      <td>${renderFollowUpCell(q,2)}</td>
     </tr>`;
   }).join('');
 
   body.querySelectorAll('tr').forEach(tr=>{
     const id = decodeURIComponent(tr.dataset.id);
     tr.addEventListener('click', (e)=>{
-      if(e.target.closest('[data-fu]')) return;
+      if(e.target.closest('[data-fu-idx]')) return;
       const q = state.quotes.find(x=>x._rowId===id);
       if(q) openModal(q);
     });
-    tr.querySelectorAll('[data-fu]').forEach(el=>{
+    tr.querySelectorAll('[data-fu-idx]').forEach(el=>{
       el.addEventListener('click', e=> e.stopPropagation());
       el.addEventListener('change', async (e)=>{
         e.stopPropagation();
-        const field = el.dataset.fu;
-        const rec = state.notes[id] || {};
-        if(field === 'followedUp') rec.followedUp = el.checked;
-        else rec[field] = el.value;
-        rec.updatedAt = new Date().toISOString();
-        state.notes[id] = rec;
-        await saveShared('crm_notes', state.notes);
+        await toggleFollowUp(id, parseInt(el.dataset.fuIdx), el.checked);
+        renderPipeline();
       });
     });
   });
@@ -1184,11 +1238,26 @@ function openModal(q){
   const rec = state.notes[q._rowId] || {};
   document.getElementById('noteInput').value = rec.note || '';
   document.getElementById('stageSelect').value = rec.stage || '';
-  document.getElementById('modalFollowedUp').checked = !!rec.followedUp;
-  document.getElementById('modalFollowUpType').value = rec.followUpType || '';
-  document.getElementById('modalLastFollowUp').value = rec.lastFollowUpDate || '';
+  renderModalFollowUps(q);
   document.getElementById('saveStatus').textContent = '\u00A0';
   document.getElementById('modalOverlay').classList.add('active');
+}
+
+function renderModalFollowUps(q){
+  const fuContainer = document.getElementById('modalFollowUps');
+  const labels = ['Follow-up 1 (48h)','Follow-up 2 (7 days)','Follow-up 3 (14 days)'];
+  fuContainer.innerHTML = labels.map((lbl,idx)=>`
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:12.5px; font-weight:600; width:150px; flex:none;">${lbl}</span>
+      ${renderFollowUpCell(q, idx)}
+    </div>`).join('');
+  fuContainer.querySelectorAll('[data-fu-idx]').forEach(el=>{
+    el.addEventListener('change', async ()=>{
+      await toggleFollowUp(q._rowId, parseInt(el.dataset.fuIdx), el.checked);
+      renderModalFollowUps(q);
+      renderPipeline();
+    });
+  });
 }
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('active');
@@ -1201,10 +1270,9 @@ document.getElementById('saveNoteBtn').addEventListener('click', async ()=>{
   if(!activeQuote) return;
   const note = document.getElementById('noteInput').value.trim();
   const stage = document.getElementById('stageSelect').value;
-  const followedUp = document.getElementById('modalFollowedUp').checked;
-  const followUpType = document.getElementById('modalFollowUpType').value;
-  const lastFollowUpDate = document.getElementById('modalLastFollowUp').value;
-  state.notes[activeQuote._rowId] = { note, stage, followedUp, followUpType, lastFollowUpDate, updatedAt: new Date().toISOString() };
+  const rec = state.notes[activeQuote._rowId] || {};
+  rec.note = note; rec.stage = stage; rec.updatedAt = new Date().toISOString();
+  state.notes[activeQuote._rowId] = rec;
   await saveShared('crm_notes', state.notes);
   document.getElementById('saveStatus').textContent = 'Saved ✓';
   renderPipeline();
