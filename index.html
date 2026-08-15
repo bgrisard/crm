@@ -286,6 +286,15 @@
   .badge-open{ background: var(--warn-bg); color: var(--warn); }
   .badge-lost{ background: #eef0f2; color: var(--slate-500); }
 
+  .fu-checkbox{ width:16px; height:16px; cursor:pointer; accent-color: var(--teal); }
+  .fu-select, .fu-date{
+    font-size:12px; padding:4px 6px; border:1px solid var(--line); border-radius:5px;
+    background:#fff; color: var(--navy-900); font-family: inherit;
+  }
+  .fu-date{ font-family: var(--font-mono); }
+  td.contact-cell{ font-size:12px; color: var(--slate-500); }
+  td.contact-cell .email{ color: var(--navy-900); }
+
   .pagination{
     display:flex; align-items:center; justify-content:space-between;
     padding: 12px 16px;
@@ -406,8 +415,8 @@
     </div>
   </div>
   <div class="navtabs" id="navtabs">
-    <button class="navtab active" data-view="dashboard">Dashboard</button>
-    <button class="navtab" data-view="pipeline">Pipeline</button>
+    <button class="navtab active" data-view="pipeline">Pipeline</button>
+    <button class="navtab" data-view="dashboard">Dashboard</button>
     <button class="navtab" data-view="leaderboard">Leaderboard</button>
     <button class="navtab" data-view="reports">Reports</button>
     <button class="navtab" data-view="settings">Settings</button>
@@ -439,11 +448,11 @@
   <div id="appRoot" style="display:none;">
 
     <!-- DASHBOARD -->
-    <section class="view active" id="view-dashboard">
+    <section class="view" id="view-dashboard">
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
         <div>
           <h1 class="page-title">Dashboard</h1>
-          <p class="page-sub" id="dashSub">Overview of all quotes and bookings.</p>
+          <p class="page-sub" id="dashSub">Overview of quotes and bookings, 2025–present.</p>
         </div>
         <select class="filter-select rep-filter-sync" id="filterRepDashboard" style="margin-top:2px;"><option value="">All reps</option></select>
       </div>
@@ -476,9 +485,9 @@
     </section>
 
     <!-- PIPELINE -->
-    <section class="view" id="view-pipeline">
+    <section class="view active" id="view-pipeline">
       <h1 class="page-title">Pipeline</h1>
-      <p class="page-sub">Every quote on record. Click a row for full details.</p>
+      <p class="page-sub">Active and won quotes only — expired quotes are hidden. Click a row for full details.</p>
 
       <div class="toolbar">
         <input type="text" class="search-input" id="searchInput" placeholder="Search customer, ID, rep…">
@@ -514,7 +523,7 @@
     <!-- LEADERBOARD -->
     <section class="view" id="view-leaderboard">
       <h1 class="page-title">Sales Leaderboard</h1>
-      <p class="page-sub">Ranked by won value. Based on the <strong>BookedBy</strong> field.</p>
+      <p class="page-sub">Ranked by won value, 2025–present. Based on the <strong>BookedBy</strong> field.</p>
       <div class="table-wrap">
         <div class="leaderboard-row head">
           <div>#</div><div>Rep</div><div style="text-align:right;">Quotes</div><div style="text-align:right;">Won</div><div style="text-align:right;">Conv. %</div><div>Won Value</div>
@@ -528,7 +537,7 @@
       <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
         <div>
           <h1 class="page-title">Reports</h1>
-          <p class="page-sub">Deeper trend and conversion analysis.</p>
+          <p class="page-sub">Deeper trend and conversion analysis, 2025–present.</p>
         </div>
         <select class="filter-select rep-filter-sync" id="filterRepReports" style="margin-top:2px;"><option value="">All reps</option></select>
       </div>
@@ -602,6 +611,27 @@
           <option value="lost">Lost</option>
         </select>
       </div>
+      <div style="display:flex; gap:16px; margin-top:16px; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+          <div class="field-label" style="margin-bottom:6px;">Followed up?</div>
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" class="fu-checkbox" id="modalFollowedUp"> Yes</label>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:6px;">Follow-up type</div>
+          <select class="fu-select" id="modalFollowUpType">
+            <option value="">—</option>
+            <option value="Call">Call</option>
+            <option value="Email">Email</option>
+            <option value="Text">Text</option>
+            <option value="In Person">In Person</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:6px;">Last follow-up date</div>
+          <input type="date" class="fu-date" id="modalLastFollowUp">
+        </div>
+      </div>
       <div style="margin-top:16px;">
         <div class="field-label" style="margin-bottom:6px;">Team note</div>
         <textarea class="note-input" id="noteInput" placeholder="Add a note for the team…"></textarea>
@@ -628,7 +658,7 @@ let state = {
   headers: [],
   mapping: {},
   notes: {},
-  view: 'dashboard',
+  view: 'pipeline',
   page: 1,
   pageSize: 50,
   sortKey: null,
@@ -675,10 +705,14 @@ function autoDetectMapping(headers){
   m.privateHireIdField = findHeader(headers, ['privatehireid'], true) || findHeader(headers, ['privatehireid']);
   m.idField = findHeader(headers, ['quoteid','quoteno','quotenumber','quoteref']) || findHeader(headers, ['id'], true) || headers[0];
   m.repField = findHeader(headers, ['bookedby']) || findHeader(headers, ['rep','salesperson','salesrep','agent']);
-  m.dateField = findHeader(headers, ['quotedate','datecreated','createddate','date']);
-  m.valueField = findHeader(headers, ['totalvalue','quotevalue','totalamount','grandtotal','amount','value','price','total']);
+  m.createdDateField = findHeader(headers, ['datecreated'], true) || findHeader(headers, ['datecreated','createddate']);
+  m.startDateField = findHeader(headers, ['startdate'], true) || findHeader(headers, ['startdate','tripdate','eventdate']);
+  m.dateField = m.createdDateField || findHeader(headers, ['quotedate','date']);
+  m.valueField = findHeader(headers, ['quotationhighesttotal'], true) || findHeader(headers, ['quotationhighesttotal']) || findHeader(headers, ['totalvalue','quotevalue','totalamount','grandtotal','amount','value','price','total']);
   m.customerField = findHeader(headers, ['customername','clientname','customer','client','contactname','name']);
-  m.statusField = findHeader(headers, ['status','stage']);
+  m.emailField = findHeader(headers, ['customeremail','clientemail','email']);
+  m.phoneField = findHeader(headers, ['customerphone','clientphone','mobile','phonenumber','phone','tel']);
+  m.statusField = findHeader(headers, ['status'], true) || findHeader(headers, ['status','stage']);
   return m;
 }
 
@@ -725,24 +759,35 @@ function buildModel(){
   }
 
   const m = state.mapping;
-  state.quotes = state.quotesRaw.slice(0, ROW_CAP).map((row, i)=>{
+  const allQuotes = state.quotesRaw.slice(0, ROW_CAP).map((row, i)=>{
     const phid = m.privateHireIdField ? (row[m.privateHireIdField]||'').toString().trim() : '';
     const isWon = phid ? wonSet.has(phid) : false;
     const rowId = m.idField ? (row[m.idField]||('row_'+i)).toString() : ('row_'+i);
-    const dateRaw = m.dateField ? row[m.dateField] : null;
-    const dateObj = parseDate(dateRaw);
+    const createdDateRaw = m.createdDateField ? row[m.createdDateField] : (m.dateField ? row[m.dateField] : null);
+    const startDateRaw = m.startDateField ? row[m.startDateField] : null;
+    const statusRaw = m.statusField ? (row[m.statusField]||'').toString().trim() : '';
+    const isCurrent = statusRaw ? norm(statusRaw).includes('current') : true; // if no status column, don't hide anything
     return {
       _rowId: rowId,
       _phid: phid,
       _isWon: isWon,
       _rep: m.repField ? (row[m.repField]||'Unassigned').toString().trim() || 'Unassigned' : 'Unassigned',
       _customer: m.customerField ? (row[m.customerField]||'').toString().trim() : '',
+      _email: m.emailField ? (row[m.emailField]||'').toString().trim() : '',
+      _phone: m.phoneField ? (row[m.phoneField]||'').toString().trim() : '',
       _value: m.valueField ? parseNumber(row[m.valueField]) : 0,
-      _date: dateObj,
-      _status: m.statusField ? (row[m.statusField]||'').toString().trim() : '',
+      _date: parseDate(createdDateRaw),
+      _startDate: parseDate(startDateRaw),
+      _status: statusRaw,
+      _isCurrent: isCurrent,
       _raw: row
     };
   });
+
+  // Hide expired quotes globally: keep only quotes still "Current" or already Won (a booking stays visible regardless of its status text)
+  state.allQuotesCount = allQuotes.length;
+  state.quotes = allQuotes.filter(q => q._isWon || q._isCurrent);
+  state.hiddenExpiredCount = allQuotes.length - state.quotes.length;
 }
 
 function currentMappingHeadersOk(){
@@ -762,7 +807,9 @@ function getFilteredQuotes(){
       q._customer.toLowerCase().includes(s) ||
       q._rowId.toString().toLowerCase().includes(s) ||
       q._rep.toLowerCase().includes(s) ||
-      q._phid.toLowerCase().includes(s)
+      q._phid.toLowerCase().includes(s) ||
+      (q._email && q._email.toLowerCase().includes(s)) ||
+      (q._phone && q._phone.toLowerCase().includes(s))
     );
   }
   if(state.sortKey){
@@ -828,8 +875,13 @@ function repFilteredQuotes(){
   return state.filters.rep ? state.quotes.filter(q=>q._rep===state.filters.rep) : state.quotes;
 }
 
+const REPORTING_YEAR_START = 2025;
+function yearFilteredQuotes(arr){
+  return (arr || state.quotes).filter(q => q._date && q._date.getFullYear() >= REPORTING_YEAR_START);
+}
+
 function renderDashboard(){
-  const arr = repFilteredQuotes();
+  const arr = yearFilteredQuotes(repFilteredQuotes());
   const stats = computeStats(arr);
   document.getElementById('kpiQuotes').textContent = stats.totalQuotes.toLocaleString();
   document.getElementById('kpiBookings').textContent = stats.wonCount.toLocaleString();
@@ -898,22 +950,29 @@ function accentClass(q){
 const PIPELINE_COLS = [
   {key:'_rowId', label:'ID'},
   {key:'_customer', label:'Customer'},
+  {key:'_email', label:'Email'},
+  {key:'_phone', label:'Phone'},
   {key:'_rep', label:'Rep'},
-  {key:'_date', label:'Date'},
-  {key:'_value', label:'Value', num:true},
-  {key:'_stage', label:'Stage'}
+  {key:'_date', label:'Created'},
+  {key:'_startDate', label:'Start Date'},
+  {key:'_value', label:'Amount', num:true},
+  {key:null, label:'Stage'},
+  {key:null, label:'Followed Up'},
+  {key:null, label:'Follow-up Type'},
+  {key:null, label:'Last Follow-up'}
 ];
+
+const FOLLOWUP_TYPES = ['Call','Email','Text','In Person','Other'];
 
 function renderPipelineHead(){
   const tr = document.getElementById('pipelineHead');
   tr.innerHTML = '<th class="row-accent"></th>' + PIPELINE_COLS.map(c=>{
-    const arrow = state.sortKey===c.key ? (state.sortDir==='asc'?'▲':'▼') : '';
-    return `<th data-key="${c.key}">${c.label}<span class="arrow">${arrow}</span></th>`;
+    const arrow = c.key && state.sortKey===c.key ? (state.sortDir==='asc'?'▲':'▼') : '';
+    return `<th ${c.key?`data-key="${c.key}"`:''}>${c.label}<span class="arrow">${arrow}</span></th>`;
   }).join('');
   tr.querySelectorAll('th[data-key]').forEach(th=>{
     th.addEventListener('click', ()=>{
       const key = th.dataset.key;
-      if(key === '_stage') return;
       if(state.sortKey === key){ state.sortDir = state.sortDir==='asc'?'desc':'asc'; }
       else { state.sortKey = key; state.sortDir = 'desc'; }
       state.page = 1;
@@ -933,22 +992,47 @@ function renderPipeline(){
   const body = document.getElementById('pipelineBody');
   body.innerHTML = pageRows.map(q=>{
     const dateStr = q._date ? q._date.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
+    const startDateStr = q._startDate ? q._startDate.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '—';
+    const rec = state.notes[q._rowId] || {};
+    const typeOpts = ['<option value="">—</option>'].concat(
+      FOLLOWUP_TYPES.map(t=>`<option value="${t}" ${rec.followUpType===t?'selected':''}>${t}</option>`)
+    ).join('');
     return `<tr data-id="${encodeURIComponent(q._rowId)}">
       <td class="row-accent"><div class="${accentClass(q)}"></div></td>
       <td class="num">${escapeHtml(q._rowId)}</td>
       <td>${escapeHtml(q._customer||'—')}</td>
+      <td class="contact-cell"><span class="email">${escapeHtml(q._email||'—')}</span></td>
+      <td class="contact-cell">${escapeHtml(q._phone||'—')}</td>
       <td>${escapeHtml(q._rep)}</td>
       <td>${dateStr}</td>
+      <td>${startDateStr}</td>
       <td class="num">${fmtMoney(q._value)}</td>
       <td>${stageBadge(q)}</td>
+      <td><input type="checkbox" class="fu-checkbox" data-fu="followedUp" ${rec.followedUp?'checked':''}></td>
+      <td><select class="fu-select" data-fu="followUpType">${typeOpts}</select></td>
+      <td><input type="date" class="fu-date" data-fu="lastFollowUpDate" value="${rec.lastFollowUpDate||''}"></td>
     </tr>`;
   }).join('');
 
   body.querySelectorAll('tr').forEach(tr=>{
-    tr.addEventListener('click', ()=>{
-      const id = decodeURIComponent(tr.dataset.id);
+    const id = decodeURIComponent(tr.dataset.id);
+    tr.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-fu]')) return;
       const q = state.quotes.find(x=>x._rowId===id);
       if(q) openModal(q);
+    });
+    tr.querySelectorAll('[data-fu]').forEach(el=>{
+      el.addEventListener('click', e=> e.stopPropagation());
+      el.addEventListener('change', async (e)=>{
+        e.stopPropagation();
+        const field = el.dataset.fu;
+        const rec = state.notes[id] || {};
+        if(field === 'followedUp') rec.followedUp = el.checked;
+        else rec[field] = el.value;
+        rec.updatedAt = new Date().toISOString();
+        state.notes[id] = rec;
+        await saveShared('crm_notes', state.notes);
+      });
     });
   });
 
@@ -979,7 +1063,7 @@ function escapeHtml(s){
 }
 
 function renderLeaderboard(){
-  const reps = repBuckets(state.quotes);
+  const reps = repBuckets(yearFilteredQuotes());
   const arr = Array.from(reps.entries()).map(([rep, b])=>({
     rep, quotes:b.quotes, won:b.won, wonValue:b.wonValue,
     conv: b.quotes ? (b.won/b.quotes*100) : 0
@@ -1002,7 +1086,7 @@ function renderLeaderboard(){
 }
 
 function renderReports(){
-  const arr = repFilteredQuotes();
+  const arr = yearFilteredQuotes(repFilteredQuotes());
   const { keys, map } = monthlyBuckets(arr);
   const last = keys.slice(-18);
   const c = chartColors();
@@ -1043,9 +1127,10 @@ function renderReports(){
 }
 
 function renderSettings(){
-  document.getElementById('statQuotesUrl').textContent = 'Published sheet';
-  document.getElementById('statBookingsUrl').textContent = 'Published sheet';
-  document.getElementById('statQuoteRows').textContent = state.quotesRaw.length.toLocaleString();
+  document.getElementById('statQuotesUrl').textContent = 'Live sheet (gviz CSV)';
+  document.getElementById('statBookingsUrl').textContent = 'Live sheet (gviz CSV)';
+  document.getElementById('statQuoteRows').textContent = state.quotesRaw.length.toLocaleString() +
+    (state.hiddenExpiredCount ? ` (${state.hiddenExpiredCount.toLocaleString()} expired hidden)` : '');
   document.getElementById('statBookingRows').textContent = state.bookingsRaw.length.toLocaleString();
   document.getElementById('statSynced').textContent = state.lastSynced ? state.lastSynced.toLocaleString() : '—';
 
@@ -1054,9 +1139,12 @@ function renderSettings(){
     {key:'privateHireIdField', label:'PrivateHireID (join key)'},
     {key:'repField', label:'Sales rep'},
     {key:'customerField', label:'Customer name'},
-    {key:'dateField', label:'Date'},
-    {key:'valueField', label:'Value / amount'},
-    {key:'statusField', label:'Status (optional)'}
+    {key:'emailField', label:'Customer email'},
+    {key:'phoneField', label:'Customer phone'},
+    {key:'createdDateField', label:'Created date'},
+    {key:'startDateField', label:'Start date'},
+    {key:'valueField', label:'Amount (QuotationHighestTotal)'},
+    {key:'statusField', label:'Status ("Current" = open)'}
   ];
   const grid = document.getElementById('mappingGrid');
   grid.innerHTML = fields.map(f=>{
@@ -1096,6 +1184,9 @@ function openModal(q){
   const rec = state.notes[q._rowId] || {};
   document.getElementById('noteInput').value = rec.note || '';
   document.getElementById('stageSelect').value = rec.stage || '';
+  document.getElementById('modalFollowedUp').checked = !!rec.followedUp;
+  document.getElementById('modalFollowUpType').value = rec.followUpType || '';
+  document.getElementById('modalLastFollowUp').value = rec.lastFollowUpDate || '';
   document.getElementById('saveStatus').textContent = '\u00A0';
   document.getElementById('modalOverlay').classList.add('active');
 }
@@ -1110,7 +1201,10 @@ document.getElementById('saveNoteBtn').addEventListener('click', async ()=>{
   if(!activeQuote) return;
   const note = document.getElementById('noteInput').value.trim();
   const stage = document.getElementById('stageSelect').value;
-  state.notes[activeQuote._rowId] = { note, stage, updatedAt: new Date().toISOString() };
+  const followedUp = document.getElementById('modalFollowedUp').checked;
+  const followUpType = document.getElementById('modalFollowUpType').value;
+  const lastFollowUpDate = document.getElementById('modalLastFollowUp').value;
+  state.notes[activeQuote._rowId] = { note, stage, followedUp, followUpType, lastFollowUpDate, updatedAt: new Date().toISOString() };
   await saveShared('crm_notes', state.notes);
   document.getElementById('saveStatus').textContent = 'Saved ✓';
   renderPipeline();
@@ -1136,9 +1230,9 @@ document.getElementById('filterStage').addEventListener('change', e=>{ state.fil
 document.getElementById('clearFilters').addEventListener('click', ()=>{
   state.filters = {search:'', rep:'', stage:''};
   document.getElementById('searchInput').value='';
-  document.getElementById('filterRep').value='';
   document.getElementById('filterStage').value='';
-  state.page=1; renderPipeline();
+  state.page=1;
+  onRepFilterChange('');
 });
 document.getElementById('firstPage').addEventListener('click', ()=>{ state.page=1; renderPipeline(); });
 document.getElementById('prevPage').addEventListener('click', ()=>{ state.page=Math.max(1,state.page-1); renderPipeline(); });
