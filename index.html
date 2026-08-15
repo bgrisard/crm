@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fleet Log — CRM</title>
+<title>Anchor CRM</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
@@ -247,7 +247,8 @@
     box-shadow: var(--shadow-card);
   }
   .table-scroll{
-    overflow-x:auto;
+    overflow: auto;
+    max-height: 68vh;
     border-radius:10px 10px 0 0;
   }
   table{ width:100%; border-collapse: collapse; font-size:13px; }
@@ -262,7 +263,7 @@
     text-transform:uppercase;
     letter-spacing:0.5px;
     font-weight:600;
-    position: sticky; top:64px;
+    position: sticky; top:0;
     z-index:10;
     cursor:pointer;
     user-select:none;
@@ -424,10 +425,7 @@
       <path d="M11 20C11 20 13 26 20 26C27 26 29 20 29 20" stroke="#E8EDF2" stroke-width="1.6" stroke-linecap="round"/>
       <circle cx="20" cy="14" r="2.2" stroke="#E8EDF2" stroke-width="1.4"/>
     </svg>
-    <div>
-      <div class="brand-text">Fleet Log</div>
-      <div class="brand-sub">Quotes &amp; Bookings CRM</div>
-    </div>
+    <div class="brand-text">Anchor CRM</div>
   </div>
   <div class="navtabs" id="navtabs">
     <button class="navtab active" data-view="pipeline">Pipeline</button>
@@ -582,7 +580,8 @@
         <p class="desc">Live published Google Sheets. Data is fetched fresh from these links each time you refresh.</p>
         <div class="stat-line"><span>Quotes sheet</span><span id="statQuotesUrl" style="font-family:inherit; font-weight:400; font-size:12px; color:var(--slate-500);">—</span></div>
         <div class="stat-line"><span>Bookings sheet</span><span id="statBookingsUrl" style="font-family:inherit; font-weight:400; font-size:12px; color:var(--slate-500);">—</span></div>
-        <div class="stat-line"><span>Quote rows loaded</span><span id="statQuoteRows">—</span></div>
+        <div class="stat-line"><span>Sheet rows (line items)</span><span id="statSheetRows">—</span></div>
+        <div class="stat-line"><span>Consolidated quotations</span><span id="statQuoteRows">—</span></div>
         <div class="stat-line"><span>Booking rows loaded</span><span id="statBookingRows">—</span></div>
         <div class="stat-line"><span>Last synced</span><span id="statSynced">—</span></div>
       </div>
@@ -701,7 +700,7 @@ function findHeader(headers, patterns, exact){
 function autoDetectMapping(headers){
   const m = {};
   m.privateHireIdField = findHeader(headers, ['privatehireid'], true) || findHeader(headers, ['privatehireid']);
-  m.idField = findHeader(headers, ['quoteid','quoteno','quotenumber','quoteref']) || findHeader(headers, ['id'], true) || headers[0];
+  m.idField = findHeader(headers, ['quotationid'], true) || findHeader(headers, ['quotationid']) || findHeader(headers, ['quoteid','quoteno','quotenumber','quoteref']) || findHeader(headers, ['id'], true) || headers[0];
   m.repField = findHeader(headers, ['bookedby']) || findHeader(headers, ['rep','salesperson','salesrep','agent']);
   m.createdDateField = findHeader(headers, ['datecreated'], true) || findHeader(headers, ['datecreated','createddate']);
   m.startDateField = findHeader(headers, ['startdate'], true) || findHeader(headers, ['startdate','tripdate','eventdate']);
@@ -757,7 +756,7 @@ function buildModel(){
   }
 
   const m = state.mapping;
-  const allQuotes = state.quotesRaw.slice(0, ROW_CAP).map((row, i)=>{
+  const allLines = state.quotesRaw.slice(0, ROW_CAP).map((row, i)=>{
     const phid = m.privateHireIdField ? (row[m.privateHireIdField]||'').toString().trim() : '';
     const isWon = phid ? wonSet.has(phid) : false;
     const rowId = m.idField ? (row[m.idField]||('row_'+i)).toString() : ('row_'+i);
@@ -781,6 +780,21 @@ function buildModel(){
       _raw: row
     };
   });
+
+  // Consolidate: multiple sheet rows can share the same QuotationID (one quotation, multiple line items).
+  // Collapse each group down to a single quote line, keeping the first row's data as the representative
+  // record but merging won/current flags across every line so nothing gets lost in the collapse.
+  const consolidated = new Map();
+  for(const line of allLines){
+    if(!consolidated.has(line._rowId)){
+      consolidated.set(line._rowId, line);
+    } else {
+      const existing = consolidated.get(line._rowId);
+      existing._isWon = existing._isWon || line._isWon;
+      existing._isCurrent = existing._isCurrent || line._isCurrent;
+    }
+  }
+  const allQuotes = Array.from(consolidated.values());
 
   // Hide expired quotes globally: keep only quotes still "Current" or already Won (a booking stays visible regardless of its status text)
   state.allQuotesCount = allQuotes.length;
@@ -1183,13 +1197,14 @@ function renderReports(){
 function renderSettings(){
   document.getElementById('statQuotesUrl').textContent = 'Live sheet (gviz CSV)';
   document.getElementById('statBookingsUrl').textContent = 'Live sheet (gviz CSV)';
-  document.getElementById('statQuoteRows').textContent = state.quotesRaw.length.toLocaleString() +
+  document.getElementById('statSheetRows').textContent = state.quotesRaw.length.toLocaleString();
+  document.getElementById('statQuoteRows').textContent = (state.allQuotesCount||0).toLocaleString() +
     (state.hiddenExpiredCount ? ` (${state.hiddenExpiredCount.toLocaleString()} expired hidden)` : '');
   document.getElementById('statBookingRows').textContent = state.bookingsRaw.length.toLocaleString();
   document.getElementById('statSynced').textContent = state.lastSynced ? state.lastSynced.toLocaleString() : '—';
 
   const fields = [
-    {key:'idField', label:'Quote ID'},
+    {key:'idField', label:'Quotation ID (consolidates lines)'},
     {key:'privateHireIdField', label:'PrivateHireID (join key)'},
     {key:'repField', label:'Sales rep'},
     {key:'customerField', label:'Customer name'},
