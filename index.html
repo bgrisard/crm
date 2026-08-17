@@ -8,28 +8,34 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
   :root{
-    --navy-950:#0a1929;
-    --navy-900:#0e2438;
-    --navy-800:#153349;
-    --navy-700:#1f4560;
-    --slate-500:#5c7189;
-    --slate-300:#a9b8c8;
-    --slate-100:#e8edf2;
-    --paper:#f4f6f8;
-    --brass:#c9a227;
-    --brass-dim:#a9861f;
-    --teal:#2f8f7f;
-    --danger:#c0392b;
-    --danger-bg:#fbeae8;
-    --success:#2f7d5c;
-    --success-bg:#e8f4ee;
-    --warn:#b5850a;
-    --warn-bg:#fbf3e0;
-    --line:#d8e0e7;
+    --navy-950:#12304d;
+    --navy-900:#17395c;
+    --navy-800:#1e4a75;
+    --navy-700:#2a6394;
+    --slate-500:#6b829c;
+    --slate-300:#b6c6d6;
+    --slate-100:#eef3f8;
+    --paper:#f7fafd;
+    --brass:#f0b429;
+    --brass-dim:#d69e1f;
+    --teal:#17a398;
+    --danger:#e03131;
+    --danger-bg:#ffe8e6;
+    --success:#129d63;
+    --success-bg:#e2f8ee;
+    --warn:#e8940c;
+    --warn-bg:#fff3d9;
+    --info:#2f80ed;
+    --info-bg:#e4f0ff;
+    --purple:#8b5cf6;
+    --purple-bg:#f1ebff;
+    --pink:#e64980;
+    --pink-bg:#ffe9f1;
+    --line:#dbe5ee;
     --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
-    --shadow-card: 0 1px 2px rgba(10,25,41,0.06), 0 4px 16px rgba(10,25,41,0.05);
+    --shadow-card: 0 1px 2px rgba(18,48,77,0.06), 0 4px 16px rgba(18,48,77,0.07);
   }
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *{box-sizing:border-box;}
@@ -279,6 +285,9 @@
   .row-accent div{ width:4px; height:100%; min-height:20px; }
   .accent-won{ background: var(--success); }
   .accent-open{ background: var(--brass); }
+  .accent-contacted{ background: var(--info); }
+  .accent-followed_up{ background: var(--purple); }
+  .accent-negotiating{ background: var(--pink); }
   .accent-lost{ background: var(--slate-300); }
 
   .badge{
@@ -291,7 +300,10 @@
   }
   .badge-won{ background: var(--success-bg); color: var(--success); }
   .badge-open{ background: var(--warn-bg); color: var(--warn); }
-  .badge-lost{ background: #eef0f2; color: var(--slate-500); }
+  .badge-contacted{ background: var(--info-bg); color: var(--info); }
+  .badge-followed_up{ background: var(--purple-bg); color: var(--purple); }
+  .badge-negotiating{ background: var(--pink-bg); color: var(--pink); }
+  .badge-lost{ background: var(--slate-100); color: var(--slate-500); }
 
   .fu-checkbox{ width:15px; height:15px; cursor:pointer; accent-color: var(--teal); flex:none; }
   .fu-cell{
@@ -303,10 +315,10 @@
     letter-spacing:0.2px;
     white-space:nowrap;
   }
-  .fu-cell.fu-done{ background: var(--success-bg); color: var(--success); }
+  .fu-cell.fu-done{ background: var(--slate-100); color: var(--slate-500); }
   .fu-cell.fu-overdue{ background: var(--danger-bg); color: var(--danger); }
   .fu-cell.fu-soon{ background: var(--warn-bg); color: var(--warn); }
-  .fu-cell.fu-upcoming{ background: #eef1f4; color: var(--slate-500); }
+  .fu-cell.fu-upcoming{ background: var(--success-bg); color: var(--success); }
   .fu-cell.fu-nodate{ background: transparent; color: var(--slate-300); font-weight:500; }
   td.contact-cell{ font-size:12px; color: var(--slate-500); }
   td.contact-cell .email{ color: var(--navy-900); }
@@ -370,7 +382,38 @@
   .modal-header .sub{ font-size:12px; color:var(--slate-500); font-family: var(--font-mono); }
   .modal-close{ background:none; border:none; font-size:20px; color:var(--slate-500); line-height:1; padding:4px; }
   .modal-close:hover{ color: var(--navy-950); }
-  .modal-body{ padding: 20px 24px; max-height: 55vh; overflow-y:auto; }
+  .modal-body{ padding: 20px 24px; max-height: 60vh; overflow-y:auto; }
+  .modal-section{ padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--slate-100); }
+  .stage-pills{ display:flex; flex-wrap:wrap; gap:8px; }
+  .stage-pill{
+    padding: 7px 14px;
+    border-radius:100px;
+    font-size:12.5px;
+    font-weight:700;
+    border:1.5px solid transparent;
+    background: var(--slate-100);
+    color: var(--slate-500);
+    transition: transform .1s, box-shadow .15s;
+  }
+  .stage-pill:hover{ transform: translateY(-1px); }
+  .stage-pill.selected{ box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; }
+  .stage-pill.sp-open{ background: var(--warn-bg); color: var(--warn); }
+  .stage-pill.sp-contacted{ background: var(--info-bg); color: var(--info); }
+  .stage-pill.sp-followed_up{ background: var(--purple-bg); color: var(--purple); }
+  .stage-pill.sp-negotiating{ background: var(--pink-bg); color: var(--pink); }
+  .stage-pill.sp-won{ background: var(--success-bg); color: var(--success); }
+  .stage-pill.sp-lost{ background: var(--slate-100); color: var(--slate-500); }
+  .btn-email{
+    display:inline-flex; align-items:center; gap:8px;
+    text-decoration:none;
+    background: var(--info-bg);
+    color: var(--info);
+    border-color: transparent;
+  }
+  .btn-email:hover{ background:#d3e6ff; }
+  .btn-email svg{ width:15px; height:15px; }
+  .email-link{ color: var(--info); text-decoration:none; }
+  .email-link:hover{ text-decoration:underline; }
   .field-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px 20px; margin-bottom:18px; }
   .field{ font-size:13px; }
   .field-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--slate-500); font-weight:700; margin-bottom:3px; }
@@ -507,8 +550,6 @@
         <select class="filter-select rep-filter-sync" id="filterRep"><option value="">All reps</option></select>
         <select class="filter-select" id="filterStage">
           <option value="">All stages</option>
-          <option value="won">Won</option>
-          <option value="open">Open</option>
         </select>
         <button class="btn" id="clearFilters">Clear</button>
         <button class="btn" id="exportBtn">Export CSV</button>
@@ -613,25 +654,32 @@
       <button class="modal-close" id="modalClose">✕</button>
     </div>
     <div class="modal-body">
-      <div class="field-grid" id="modalFields"></div>
-      <div>
-        <div class="field-label" style="margin-bottom:6px;">Stage</div>
-        <select class="stage-select" id="stageSelect">
-          <option value="">— No override —</option>
-          <option value="contacted">Contacted</option>
-          <option value="follow_up">Follow-up needed</option>
-          <option value="negotiating">Negotiating</option>
-          <option value="won">Won</option>
-          <option value="lost">Lost</option>
-        </select>
+      <div class="modal-section">
+        <div class="field-label" style="margin-bottom:8px;">Stage</div>
+        <div class="stage-pills" id="stagePills"></div>
       </div>
-      <div style="margin-top:16px;">
-        <div class="field-label" style="margin-bottom:8px;">Follow-ups</div>
+
+      <div class="modal-section">
+        <div class="field-label" style="margin-bottom:8px;">Follow-up tasks</div>
         <div id="modalFollowUps" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
-      <div style="margin-top:16px;">
+
+      <div class="modal-section">
+        <div class="field-label" style="margin-bottom:8px;">Actions</div>
+        <a class="btn btn-email" id="emailClientBtn" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          Email client
+        </a>
+      </div>
+
+      <div class="modal-section">
         <div class="field-label" style="margin-bottom:6px;">Team note</div>
         <textarea class="note-input" id="noteInput" placeholder="Add a note for the team…"></textarea>
+      </div>
+
+      <div class="modal-section" style="border-bottom:none;">
+        <div class="field-label" style="margin-bottom:10px;">Quote details</div>
+        <div class="field-grid" id="modalFields"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -811,8 +859,7 @@ function getFilteredQuotes(){
   let arr = state.quotes;
   const f = state.filters;
   if(f.rep) arr = arr.filter(q => q._rep === f.rep);
-  if(f.stage === 'won') arr = arr.filter(q => q._isWon);
-  if(f.stage === 'open') arr = arr.filter(q => !q._isWon);
+  if(f.stage) arr = arr.filter(q => effectiveStage(q) === (f.stage === 'open' ? '' : f.stage));
   if(f.search){
     const s = f.search.toLowerCase();
     arr = arr.filter(q =>
@@ -881,7 +928,7 @@ function repBuckets(arr){
 
 // ---------- rendering ----------
 function chartColors(){
-  return { navy:'#153349', brass:'#C9A227', teal:'#2F8F7F', slate:'#a9b8c8', danger:'#c0392b' };
+  return { navy:'#1e4a75', brass:'#F0B429', teal:'#17A398', slate:'#b6c6d6', danger:'#e03131', info:'#2F80ED' };
 }
 
 function destroyChart(id){ if(state.charts[id]){ state.charts[id].destroy(); delete state.charts[id]; } }
@@ -946,20 +993,28 @@ function renderDashboard(){
   });
 }
 
-function stageBadge(q){
+const STAGES = [
+  {value:'',            label:'Open',        badge:'badge-open',        accent:'accent-open'},
+  {value:'contacted',   label:'Contacted',   badge:'badge-contacted',   accent:'accent-contacted'},
+  {value:'followed_up', label:'Followed Up', badge:'badge-followed_up', accent:'accent-followed_up'},
+  {value:'negotiating', label:'Negotiating', badge:'badge-negotiating', accent:'accent-negotiating'},
+  {value:'won',         label:'Won',         badge:'badge-won',         accent:'accent-won'},
+  {value:'lost',        label:'Lost',        badge:'badge-lost',        accent:'accent-lost'}
+];
+function stageDef(value){
+  return STAGES.find(s=>s.value===value) || STAGES[0];
+}
+function effectiveStage(q){
   const override = state.notes[q._rowId] && state.notes[q._rowId].stage;
-  if(override === 'won' || q._isWon) return '<span class="badge badge-won">Won</span>';
-  if(override === 'lost') return '<span class="badge badge-lost">Lost</span>';
-  if(override === 'follow_up') return '<span class="badge badge-open">Follow-up</span>';
-  if(override === 'negotiating') return '<span class="badge badge-open">Negotiating</span>';
-  if(override === 'contacted') return '<span class="badge badge-open">Contacted</span>';
-  return '<span class="badge badge-open">Open</span>';
+  if(override) return override;
+  return q._isWon ? 'won' : '';
+}
+function stageBadge(q){
+  const def = stageDef(effectiveStage(q));
+  return `<span class="badge ${def.badge}">${def.label}</span>`;
 }
 function accentClass(q){
-  const override = state.notes[q._rowId] && state.notes[q._rowId].stage;
-  if(override === 'won' || q._isWon) return 'accent-won';
-  if(override === 'lost') return 'accent-lost';
-  return 'accent-open';
+  return stageDef(effectiveStage(q)).accent;
 }
 
 const PIPELINE_COLS = [
@@ -996,7 +1051,7 @@ function followUpStatus(q, idx){
   if(dueMs===null) return {state:'nodate', dueMs, fu};
   const hoursUntil = (dueMs - Date.now())/3600000;
   if(hoursUntil < 0) return {state:'overdue', dueMs, fu};
-  if(hoursUntil <= 24) return {state:'soon', dueMs, fu};
+  if(hoursUntil <= 48) return {state:'soon', dueMs, fu};
   return {state:'upcoming', dueMs, fu};
 }
 function renderFollowUpCell(q, idx){
@@ -1073,7 +1128,7 @@ function renderPipeline(){
       <td class="row-accent"><div class="${accentClass(q)}"></div></td>
       <td class="num">${escapeHtml(q._rowId)}</td>
       <td>${escapeHtml(q._customer||'—')}</td>
-      <td class="contact-cell"><span class="email">${escapeHtml(q._email||'—')}</span></td>
+      <td class="contact-cell">${q._email ? `<a class="email-link" href="${escapeHtml(buildMailto(q))}" data-email-link title="Email ${escapeHtml(q._email)}">${escapeHtml(q._email)}</a>` : '—'}</td>
       <td class="contact-cell">${escapeHtml(q._phone||'—')}</td>
       <td>${escapeHtml(q._rep)}</td>
       <td>${dateStr}</td>
@@ -1091,6 +1146,7 @@ function renderPipeline(){
     const id = decodeURIComponent(tr.dataset.id);
     tr.addEventListener('click', (e)=>{
       if(e.target.closest('[data-fu-idx]')) return;
+      if(e.target.closest('[data-email-link]')) return;
       const q = state.quotes.find(x=>x._rowId===id);
       if(q) openModal(q);
     });
@@ -1116,6 +1172,12 @@ function renderPipeline(){
 }
 
 function populateRepFilters(){
+  const stageSel = document.getElementById('filterStage');
+  if(stageSel.options.length<=1){
+    stageSel.innerHTML = '<option value="">All stages</option>' +
+      STAGES.map(s=>`<option value="${s.value||'open'}">${s.label}</option>`).join('');
+    stageSel.value = state.filters.stage;
+  }
   const selects = document.querySelectorAll('.rep-filter-sync');
   const reps = Array.from(new Set(state.quotes.map(q=>q._rep))).sort();
   selects.forEach(sel=>{
@@ -1245,17 +1307,61 @@ let activeQuote = null;
 function openModal(q){
   activeQuote = q;
   document.getElementById('modalTitle').textContent = q._customer || ('Quote '+q._rowId);
-  document.getElementById('modalSub').textContent = 'ID: '+q._rowId + (q._phid ? ' · PrivateHireID: '+q._phid : '');
+  document.getElementById('modalSub').textContent = 'QuotationID: '+q._rowId + (q._phid ? ' · PrivateHireID: '+q._phid : '');
   const grid = document.getElementById('modalFields');
   grid.innerHTML = Object.entries(q._raw).map(([k,v])=>`
     <div class="field"><div class="field-label">${escapeHtml(k)}</div><div class="field-value">${escapeHtml(v)||'—'}</div></div>
   `).join('');
   const rec = state.notes[q._rowId] || {};
   document.getElementById('noteInput').value = rec.note || '';
-  document.getElementById('stageSelect').value = rec.stage || '';
+  renderStagePills(q);
   renderModalFollowUps(q);
+
+  const emailBtn = document.getElementById('emailClientBtn');
+  if(q._email){
+    emailBtn.href = buildMailto(q);
+    emailBtn.style.display = 'inline-flex';
+    emailBtn.removeAttribute('aria-disabled');
+  } else {
+    emailBtn.href = '#';
+    emailBtn.style.display = 'none';
+  }
+
   document.getElementById('saveStatus').textContent = '\u00A0';
   document.getElementById('modalOverlay').classList.add('active');
+}
+
+function buildMailto(q){
+  const subject = `Your quote ${q._rowId}` + (q._startDate ? ` — ${q._startDate.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}` : '');
+  const greeting = q._customer ? `Hi ${q._customer},` : 'Hello,';
+  const body = `${greeting}\n\nFollowing up on your quote (${q._rowId})`
+    + (q._value ? ` for ${fmtMoney(q._value)}` : '')
+    + (q._startDate ? `, with a start date of ${q._startDate.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}` : '')
+    + `.\n\n\n\nBest regards,\n${q._rep && q._rep !== 'Unassigned' ? q._rep : ''}`;
+  return 'mailto:' + encodeURIComponent(q._email)
+    + '?subject=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+}
+
+function renderStagePills(q){
+  const container = document.getElementById('stagePills');
+  const current = effectiveStage(q);
+  container.innerHTML = STAGES.map(s=>{
+    const sel = s.value === current ? ' selected' : '';
+    return `<button class="stage-pill sp-${s.value||'open'}${sel}" data-stage="${s.value}">${s.label}</button>`;
+  }).join('');
+  container.querySelectorAll('[data-stage]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const rec = state.notes[q._rowId] || {};
+      rec.stage = btn.dataset.stage;
+      rec.updatedAt = new Date().toISOString();
+      state.notes[q._rowId] = rec;
+      await saveShared('crm_notes', state.notes);
+      renderStagePills(q);
+      renderPipeline();
+      document.getElementById('saveStatus').textContent = 'Stage saved ✓';
+    });
+  });
 }
 
 function renderModalFollowUps(q){
@@ -1284,12 +1390,11 @@ document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.targ
 document.getElementById('saveNoteBtn').addEventListener('click', async ()=>{
   if(!activeQuote) return;
   const note = document.getElementById('noteInput').value.trim();
-  const stage = document.getElementById('stageSelect').value;
   const rec = state.notes[activeQuote._rowId] || {};
-  rec.note = note; rec.stage = stage; rec.updatedAt = new Date().toISOString();
+  rec.note = note; rec.updatedAt = new Date().toISOString();
   state.notes[activeQuote._rowId] = rec;
   await saveShared('crm_notes', state.notes);
-  document.getElementById('saveStatus').textContent = 'Saved ✓';
+  document.getElementById('saveStatus').textContent = 'Note saved ✓';
   renderPipeline();
   renderDashboard();
 });
