@@ -799,6 +799,22 @@ function repFilteredQuotes(){
   return state.filters.rep ? state.quotes.filter(q=>q._rep===state.filters.rep) : state.quotes;
 }
 
+const STAGES = [
+  {value:'',            label:'Open',        badge:'badge-open',        accent:'accent-open'},
+  {value:'contacted',   label:'Contacted',   badge:'badge-contacted',   accent:'accent-contacted'},
+  {value:'followed_up', label:'Followed Up', badge:'badge-followed_up', accent:'accent-followed_up'},
+  {value:'negotiating', label:'Negotiating', badge:'badge-negotiating', accent:'accent-negotiating'},
+  {value:'won',         label:'Won',         badge:'badge-won',         accent:'accent-won'},
+  {value:'lost',        label:'Lost',        badge:'badge-lost',        accent:'accent-lost'}
+];
+function stageDef(value){
+  return STAGES.find(s=>s.value===value) || STAGES[0];
+}
+function effectiveStage(q){
+  const override = state.notes[q._rowId] && state.notes[q._rowId].stage;
+  if(override) return override;
+  return q._isWon ? 'won' : '';
+}
 function stageBadge(q){
   const def = stageDef(effectiveStage(q));
   return `<span class="badge ${def.badge}">${def.label}</span>`;
@@ -1016,6 +1032,44 @@ function populateRepFilters(){
 
 function escapeHtml(s){
   return (s===undefined||s===null?'':s.toString()).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderSettings(){
+  document.getElementById('statQuotesUrl').textContent = 'Live sheet (gviz CSV)';
+  document.getElementById('statBookingsUrl').textContent = 'Live sheet (gviz CSV)';
+  document.getElementById('statSheetRows').textContent = state.quotesRaw.length.toLocaleString();
+  document.getElementById('statQuoteRows').textContent = (state.allQuotesCount||0).toLocaleString() +
+    (state.hiddenExpiredCount ? ` (${state.hiddenExpiredCount.toLocaleString()} expired hidden)` : '');
+  document.getElementById('statBookingRows').textContent = state.bookingsRaw.length.toLocaleString();
+  document.getElementById('statSynced').textContent = state.lastSynced ? state.lastSynced.toLocaleString() : '—';
+
+  const fields = [
+    {key:'idField', label:'Quotation ID (consolidates lines)'},
+    {key:'privateHireIdField', label:'PrivateHireID (join key)'},
+    {key:'repField', label:'Sales rep'},
+    {key:'customerField', label:'Customer name'},
+    {key:'emailField', label:'Customer email'},
+    {key:'phoneField', label:'Customer phone'},
+    {key:'createdDateField', label:'Created date'},
+    {key:'startDateField', label:'Start date'},
+    {key:'valueField', label:'Amount (QuotationHighestTotal)'},
+    {key:'statusField', label:'Status ("Current" = open)'}
+  ];
+  const grid = document.getElementById('mappingGrid');
+  grid.innerHTML = fields.map(f=>{
+    const opts = ['<option value="">— none —</option>'].concat(
+      state.headers.map(h=>`<option value="${escapeHtml(h)}" ${state.mapping[f.key]===h?'selected':''}>${escapeHtml(h)}</option>`)
+    ).join('');
+    return `<label>${f.label}</label><select data-field="${f.key}">${opts}</select>`;
+  }).join('');
+  grid.querySelectorAll('select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      state.mapping[sel.dataset.field] = sel.value || null;
+      await saveShared('crm_mapping', state.mapping);
+      buildModel();
+      renderAll();
+    });
+  });
 }
 
 function renderAll(){
