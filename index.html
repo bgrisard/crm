@@ -280,7 +280,7 @@ window.ANCHOR_CONFIG = {
     max-height: 72vh;
     border-radius:10px 10px 0 0;
   }
-  table{ width:100%; border-collapse: collapse; font-size:13px; min-width: 1500px; }
+  table{ width:100%; border-collapse: collapse; font-size:13px; min-width: 1620px; }
   table tr:first-child th:first-child{ border-top-left-radius:10px; }
   table tr:first-child th:last-child{ border-top-right-radius:10px; }
   thead th{
@@ -552,6 +552,55 @@ window.ANCHOR_CONFIG = {
   .mail-mode{ display:flex; align-items:center; gap:9px; }
   .mail-mode-label{ font-size:12.5px; color:var(--slate-500); font-weight:600; }
 
+  /* ---------- Template editor ---------- */
+  .tpl-hint{ font-size:12px; color:var(--slate-500); margin:0 0 14px; font-style:italic; }
+  .tpl-label{
+    display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px;
+    font-weight:700; color:var(--slate-500); margin-bottom:5px;
+  }
+  .tpl-subject{
+    width:100%; max-width:680px; padding:9px 12px; border:1px solid var(--line);
+    border-radius:7px; font-size:13.5px; margin-bottom:16px; font-family:inherit;
+  }
+  .tpl-body{
+    width:100%; max-width:680px; min-height:210px; padding:11px 13px;
+    border:1px solid var(--line); border-radius:7px;
+    font-size:13px; line-height:1.55; font-family:inherit; resize:vertical;
+  }
+  .tpl-tokens{ margin:12px 0 4px; max-width:680px; }
+  .tpl-tokens-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px;
+    font-weight:700; color:var(--slate-500); margin-right:8px;
+  }
+  .tpl-token{
+    display:inline-block; margin:4px 5px 0 0;
+    background: var(--info-bg); color: var(--info);
+    border:1px solid transparent; border-radius:5px;
+    padding:3px 8px; font-family:var(--font-mono); font-size:11.5px; font-weight:600;
+  }
+  .tpl-token:hover{ background: var(--info); color:#fff; }
+  .tpl-actions{ display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .tpl-status{ font-size:12.5px; font-weight:600; color: var(--success); }
+  .tpl-status.err{ color: var(--danger); }
+  .tpl-preview-wrap{
+    margin-top:20px; max-width:680px;
+    border:1px solid var(--line); border-radius:9px; overflow:hidden;
+  }
+  .tpl-preview-head{
+    background: var(--slate-100); padding:8px 13px;
+    font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px;
+    font-weight:700; color:var(--slate-500);
+  }
+  .tpl-preview-head span{ text-transform:none; letter-spacing:0; font-weight:600; }
+  .tpl-preview{
+    padding:14px; font-size:13px; line-height:1.55;
+    white-space:pre-wrap; color:var(--navy-900); background:#fff;
+  }
+  .tpl-preview .pv-subject{
+    font-weight:700; padding-bottom:9px; margin-bottom:11px;
+    border-bottom:1px solid var(--slate-100); display:block;
+  }
+
   .due-card{
     background:#fff; border:1px solid var(--line); border-radius:10px;
     padding:14px 16px; margin-bottom:10px; box-shadow: var(--shadow-card);
@@ -578,6 +627,15 @@ window.ANCHOR_CONFIG = {
   }
   .btn-draft:hover{ background:#1c6fd8; }
   .btn-draft svg{ width:14px; height:14px; }
+  .btn-draft-sm{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 9px; border-radius:6px;
+    font-size:11px; font-weight:700; letter-spacing:0.2px;
+    background: var(--info-bg); color: var(--info);
+    border:1px solid transparent; text-decoration:none; white-space:nowrap;
+  }
+  .btn-draft-sm:hover{ background: var(--info); color:#fff; }
+  .btn-draft-sm svg{ width:12px; height:12px; }
   .btn-done{
     display:inline-flex; align-items:center; gap:6px;
     padding:8px 12px; border-radius:7px; font-size:12.5px; font-weight:600;
@@ -684,6 +742,14 @@ window.ANCHOR_CONFIG = {
         </div>
         <button class="btn" id="clearFilters">Clear</button>
         <button class="btn" id="exportBtn">Export CSV</button>
+        <div style="flex:1;"></div>
+        <div class="mail-mode">
+          <span class="mail-mode-label">Draft in:</span>
+          <div class="seg mail-mode-seg">
+            <button class="seg-btn active" data-mail="desktop">Outlook desktop</button>
+            <button class="seg-btn" data-mail="web">Outlook web</button>
+          </div>
+        </div>
       </div>
 
       <div class="table-wrap">
@@ -726,7 +792,7 @@ window.ANCHOR_CONFIG = {
         <div style="flex:1;"></div>
         <div class="mail-mode">
           <span class="mail-mode-label">Open in:</span>
-          <div class="seg">
+          <div class="seg mail-mode-seg">
             <button class="seg-btn active" data-mail="desktop">Outlook desktop</button>
             <button class="seg-btn" data-mail="web">Outlook web</button>
           </div>
@@ -757,6 +823,37 @@ window.ANCHOR_CONFIG = {
         <h3>Column mapping</h3>
         <p class="desc">Auto-detected from your sheet headers. Fix any of these if they're wrong — changes apply immediately and are saved for your whole team.</p>
         <div class="mapping-grid" id="mappingGrid"></div>
+      </div>
+
+      <div class="panel settings-section">
+        <h3>Follow-up email templates</h3>
+        <p class="desc">These are the emails the Draft buttons produce. Edits are saved to Supabase and shared with the whole team.</p>
+
+        <div class="seg" id="tplPicker" style="margin-bottom:16px;"></div>
+
+        <p class="tpl-hint" id="tplHint"></p>
+
+        <label class="tpl-label">Subject</label>
+        <input type="text" class="tpl-subject" id="tplSubject" placeholder="Subject line…">
+
+        <label class="tpl-label">Body</label>
+        <textarea class="tpl-body" id="tplBody" placeholder="Email body…"></textarea>
+
+        <div class="tpl-tokens">
+          <span class="tpl-tokens-label">Click to insert:</span>
+          <span id="tplTokenList"></span>
+        </div>
+
+        <div class="tpl-actions">
+          <button class="btn btn-primary" id="tplSave">Save template</button>
+          <button class="btn" id="tplReset">Reset this one to default</button>
+          <span class="tpl-status" id="tplStatus"></span>
+        </div>
+
+        <div class="tpl-preview-wrap">
+          <div class="tpl-preview-head">Preview <span id="tplPreviewWho"></span></div>
+          <div class="tpl-preview" id="tplPreview">—</div>
+        </div>
       </div>
 
       <div class="panel settings-section">
@@ -836,6 +933,7 @@ let state = {
   headers: [],
   mapping: {},
   notes: {},
+  templates: null,
   user: null,
   view: 'pipeline',
   page: 1,
@@ -912,25 +1010,29 @@ async function saveActivity(rowId){
   }
 }
 
-async function loadConfigMapping(){
-  const { data, error } = await sb.from('crm_config').select('*').eq('key','mapping').maybeSingle();
+async function loadConfig(key){
+  const { data, error } = await sb.from('crm_config').select('*').eq('key', key).maybeSingle();
   if(error) throw error;
   return data ? data.value : null;
 }
-async function saveConfigMapping(mapping){
+async function saveConfig(key, value){
   setSaveStatus('saving');
   try{
     const { error } = await sb.from('crm_config').upsert(
-      { key:'mapping', value: mapping, updated_at: new Date().toISOString() },
+      { key, value, updated_at: new Date().toISOString() },
       { onConflict: 'key' }
     );
     if(error) throw error;
     setSaveStatus('saved');
+    return true;
   }catch(err){
-    console.error('saveConfigMapping failed', err);
+    console.error('saveConfig failed', key, err);
     setSaveStatus('error', err.message || 'check connection');
+    return false;
   }
 }
+async function loadConfigMapping(){ return loadConfig('mapping'); }
+async function saveConfigMapping(mapping){ return saveConfig('mapping', mapping); }
 
 // Live sync: pick up other reps' changes without a refresh.
 function subscribeToActivity(){
@@ -1172,7 +1274,8 @@ const PIPELINE_COLS = [
   {key:'_daysOld', label:'Days Old', num:true},
   {key:'_fu0Due', label:'Follow-up 1'},
   {key:'_fu1Due', label:'Follow-up 2'},
-  {key:'_fu2Due', label:'Follow-up 3'}
+  {key:'_fu2Due', label:'Follow-up 3'},
+  {key:null, label:'Draft'}
 ];
 
 const FOLLOWUP_OFFSETS_HOURS = [48, 24*7, 24*14]; // 48h, 7 days, 14 days after quote created
@@ -1190,15 +1293,50 @@ function followUpStatus(q, idx){
   const fu = getFollowUps(q._rowId)[idx];
   const dueMs = followUpDueMs(q, idx);
   if(fu.completed) return {state:'done', dueMs, fu};
+  const stage = effectiveStage(q);
+  // A closed deal shouldn't nag: no red "overdue" on something already won or lost.
+  if(stage === 'won' || stage === 'lost') return {state:'closed', dueMs, fu};
   if(dueMs===null) return {state:'nodate', dueMs, fu};
   const hoursUntil = (dueMs - Date.now())/3600000;
   if(hoursUntil < 0) return {state:'overdue', dueMs, fu};
   if(hoursUntil <= 48) return {state:'soon', dueMs, fu};
   return {state:'upcoming', dueMs, fu};
 }
+// Which follow-up template applies to this quote right now?
+// Mirrors the Follow-ups queue exactly: the earliest outstanding follow-up.
+// Returns null when nothing is outstanding (closed deal, or all three done) —
+// in that case the generic template is used.
+function activeFollowUpIdx(q){
+  for(let idx=0; idx<3; idx++){
+    const st = followUpStatus(q, idx);
+    if(st.state === 'done' || st.state === 'nodate' || st.state === 'closed') continue;
+    return idx;
+  }
+  return null;
+}
+
+function renderDraftButton(q){
+  if(!q._email) return '<span style="color:var(--slate-300); font-size:11px;">no email</span>';
+  const idx = activeFollowUpIdx(q);
+  const labels = ['FU1','FU2','FU3'];
+  const title = idx===null
+    ? 'Draft a general follow-up email'
+    : `Draft the follow-up ${idx+1} email`;
+  return `<a class="btn-draft-sm" href="${escapeHtml(draftLink(q, idx))}" data-draft-link
+      title="${escapeHtml(title)}" ${state.mailMode==='web'?'target="_blank" rel="noopener"':''}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+      ${idx===null ? 'Email' : labels[idx]}
+    </a>`;
+}
+
 function renderFollowUpCell(q, idx){
   const st = followUpStatus(q, idx);
-  const cls = {done:'fu-done', overdue:'fu-overdue', soon:'fu-soon', upcoming:'fu-upcoming', nodate:'fu-nodate'}[st.state];
+  const cls = {done:'fu-done', overdue:'fu-overdue', soon:'fu-soon', upcoming:'fu-upcoming',
+               nodate:'fu-nodate', closed:'fu-nodate'}[st.state];
+  // Closed deals show a muted dash with no checkbox — nothing to action.
+  if(st.state === 'closed'){
+    return `<div class="fu-cell fu-nodate">—</div>`;
+  }
   let label;
   if(st.state === 'done'){
     label = 'Done' + (st.fu.completedAt ? ' '+new Date(st.fu.completedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
@@ -1281,6 +1419,7 @@ function renderPipeline(){
       <td>${renderFollowUpCell(q,0)}</td>
       <td>${renderFollowUpCell(q,1)}</td>
       <td>${renderFollowUpCell(q,2)}</td>
+      <td>${renderDraftButton(q)}</td>
     </tr>`;
   }).join('');
 
@@ -1289,6 +1428,7 @@ function renderPipeline(){
     tr.addEventListener('click', (e)=>{
       if(e.target.closest('[data-fu-idx]')) return;
       if(e.target.closest('[data-email-link]')) return;
+      if(e.target.closest('[data-draft-link]')) return;
       const q = state.quotes.find(x=>x._rowId===id);
       if(q) openModal(q);
     });
@@ -1370,6 +1510,105 @@ function escapeHtml(s){
   return (s===undefined||s===null?'':s.toString()).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// ---------- template editor (Settings) ----------
+let tplActive = 'fu1';
+
+function renderTemplateEditor(){
+  const picker = document.getElementById('tplPicker');
+  if(!picker) return;
+  picker.innerHTML = TEMPLATE_KEYS.map(t=>
+    `<button class="seg-btn ${t.key===tplActive?'active':''}" data-tpl="${t.key}">${t.label}</button>`
+  ).join('');
+  picker.querySelectorAll('[data-tpl]').forEach(b=>{
+    b.addEventListener('click', ()=>{ tplActive = b.dataset.tpl; renderTemplateEditor(); });
+  });
+
+  const def = TEMPLATE_KEYS.find(t=>t.key===tplActive);
+  document.getElementById('tplHint').textContent = def.hint;
+
+  const tpls = getTemplates();
+  document.getElementById('tplSubject').value = tpls[tplActive].subject;
+  document.getElementById('tplBody').value = tpls[tplActive].body;
+  document.getElementById('tplStatus').textContent = '';
+  document.getElementById('tplStatus').className = 'tpl-status';
+
+  const list = document.getElementById('tplTokenList');
+  if(!list.dataset.built){
+    list.innerHTML = TEMPLATE_TOKENS.map(t=>
+      `<button class="tpl-token" data-token="${escapeHtml(t.token)}" title="${escapeHtml(t.desc)}">${escapeHtml(t.token)}</button>`
+    ).join('');
+    list.dataset.built = '1';
+    list.querySelectorAll('[data-token]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const ta = document.getElementById('tplBody');
+        const pos = ta.selectionStart ?? ta.value.length;
+        ta.value = ta.value.slice(0,pos) + b.dataset.token + ta.value.slice(ta.selectionEnd ?? pos);
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = pos + b.dataset.token.length;
+        updateTemplatePreview();
+      });
+    });
+  }
+  updateTemplatePreview();
+}
+
+// Preview uses a real quote when available so reps see actual substituted values.
+function sampleQuote(){
+  const withAll = state.quotes.find(q=>q._customer && q._startDate && q._value);
+  if(withAll) return withAll;
+  if(state.quotes.length) return state.quotes[0];
+  return { _customer:'Mrs Leftwich', _rowId:'Q43254', _value:2978,
+           _startDate:new Date(2027,6,12), _date:new Date(), _daysOld:47,
+           _rep:'LEE', _email:'cleftwich@example.org', _phone:'615-444-9550' };
+}
+
+function updateTemplatePreview(){
+  const q = sampleQuote();
+  const subject = fillTokens(document.getElementById('tplSubject').value, q);
+  const body = fillTokens(document.getElementById('tplBody').value, q);
+  document.getElementById('tplPreviewWho').textContent =
+    '— using ' + (q._customer || q._rowId);
+  document.getElementById('tplPreview').innerHTML =
+    '<span class="pv-subject">' + escapeHtml(subject) + '</span>' + escapeHtml(body);
+}
+
+function wireTemplateEditor(){
+  const subj = document.getElementById('tplSubject');
+  const body = document.getElementById('tplBody');
+  if(!subj) return;
+  subj.addEventListener('input', updateTemplatePreview);
+  body.addEventListener('input', updateTemplatePreview);
+
+  document.getElementById('tplSave').addEventListener('click', async ()=>{
+    state.templates = state.templates || {};
+    state.templates[tplActive] = {
+      subject: subj.value,
+      body: body.value
+    };
+    const ok = await saveConfig('templates', state.templates);
+    const st = document.getElementById('tplStatus');
+    st.textContent = ok ? 'Saved for the whole team ✓' : 'Save failed — not stored';
+    st.className = 'tpl-status' + (ok ? '' : ' err');
+    // Draft links regenerate from the new template
+    renderPipeline();
+    renderFollowUpQueue();
+  });
+
+  document.getElementById('tplReset').addEventListener('click', async ()=>{
+    if(!confirm('Reset this template back to the built-in default?')) return;
+    state.templates = state.templates || {};
+    delete state.templates[tplActive];
+    const ok = await saveConfig('templates', state.templates);
+    renderTemplateEditor();
+    const st = document.getElementById('tplStatus');
+    st.textContent = ok ? 'Reset to default ✓' : 'Reset failed — not stored';
+    st.className = 'tpl-status' + (ok ? '' : ' err');
+    renderPipeline();
+    renderFollowUpQueue();
+  });
+}
+wireTemplateEditor();
+
 function renderSettings(){
   document.getElementById('statQuotesUrl').textContent = 'Live sheet (gviz CSV)';
   document.getElementById('statBookingsUrl').textContent = 'Live sheet (gviz CSV)';
@@ -1380,6 +1619,7 @@ function renderSettings(){
   document.getElementById('statSynced').textContent = state.lastSynced ? state.lastSynced.toLocaleString() : '—';
   const bs = document.getElementById('statBuild');
   if(bs) bs.textContent = BUILD_STAMP;
+  renderTemplateEditor();
 
   const fields = [
     {key:'idField', label:'Quotation ID (consolidates lines)'},
@@ -1456,7 +1696,7 @@ function collectDueFollowUps(){
     if(!q._email) continue; // nothing to draft without an address
     for(let idx=0; idx<3; idx++){
       const st = followUpStatus(q, idx);
-      if(st.state === 'done' || st.state === 'nodate') continue;
+      if(st.state === 'done' || st.state === 'nodate' || st.state === 'closed') continue;
       if(st.state === 'upcoming') continue; // not due yet
       // only surface the earliest outstanding follow-up per quote
       items.push({ q, idx, dueMs: st.dueMs, state: st.state });
@@ -1572,37 +1812,79 @@ function fmtLongDate(d){
   return d ? d.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'}) : '';
 }
 
-// idx: 0 = 48h nudge, 1 = 7-day check-in, 2 = 14-day final touch. null = generic.
-function emailTemplate(q, idx){
-  const name = q._customer || 'there';
-  const greeting = `Hi ${name},`;
-  const trip = q._startDate ? ` for ${fmtLongDate(q._startDate)}` : '';
-  const amount = q._value ? ` (${fmtMoney(q._value)})` : '';
-  const signoff = `\n\nBest regards,\n${q._rep && q._rep !== 'Unassigned' ? q._rep : ''}\nAnchor Transportation`;
-  const ref = `\n\nQuote reference: ${q._rowId}`;
+const TEMPLATE_KEYS = [
+  {key:'fu1',     label:'Follow-up 1', hint:'Used 48 hours after the quote was created'},
+  {key:'fu2',     label:'Follow-up 2', hint:'Used 7 days after the quote was created'},
+  {key:'fu3',     label:'Follow-up 3', hint:'Used 14 days after the quote was created'},
+  {key:'general', label:'General',     hint:'Used when no follow-up is outstanding (e.g. a won or closed quote)'}
+];
 
-  let subject, body;
-  if(idx === 0){
-    subject = `Following up on your quote${trip ? ' for '+fmtLongDate(q._startDate) : ''}`;
-    body = `${greeting}\n\nThanks for reaching out to us about your transportation${trip}. `
-      + `I wanted to make sure you received the quote we sent over${amount}.\n\n`
-      + `If you have any questions about the vehicle, timings, or anything else, just reply here and I'll get you an answer.`;
-  } else if(idx === 1){
-    subject = `Checking in on your transportation${trip}`;
-    body = `${greeting}\n\nJust checking in on the quote we put together${trip}${amount}. `
-      + `I know plans can take time to firm up, so no rush at all.\n\n`
-      + `If anything has changed — dates, group size, pickup location — I'm happy to put together a revised quote.`;
-  } else if(idx === 2){
-    subject = `Still holding availability${trip}`;
-    body = `${greeting}\n\nI wanted to reach out one last time about your quote${trip}${amount}. `
-      + `We still have availability, but I can't guarantee it much longer as the date gets closer.\n\n`
-      + `If you'd like to move forward, just let me know and I'll get everything booked. `
-      + `And if you've decided to go another direction, no problem at all — I'd appreciate knowing so I can free up the vehicle.`;
-  } else {
-    subject = `Your quote ${q._rowId}${trip ? ' — '+fmtLongDate(q._startDate) : ''}`;
-    body = `${greeting}\n\nFollowing up on your quote${trip}${amount}.`;
+const TEMPLATE_TOKENS = [
+  {token:'{customer}',     desc:'Customer name'},
+  {token:'{quote_id}',     desc:'QuotationID'},
+  {token:'{amount}',       desc:'Quote amount'},
+  {token:'{start_date}',   desc:'Trip start date'},
+  {token:'{created_date}', desc:'Date quote created'},
+  {token:'{days_old}',     desc:'Days since created'},
+  {token:'{rep}',          desc:'Salesperson (BookedBy)'},
+  {token:'{email}',        desc:'Customer email'},
+  {token:'{phone}',        desc:'Customer phone'}
+];
+
+const DEFAULT_TEMPLATES = {
+  fu1: {
+    subject: 'Following up on your quote for {start_date}',
+    body: "Hi {customer},\n\nThanks for reaching out to us about your transportation for {start_date}. I wanted to make sure you received the quote we sent over ({amount}).\n\nIf you have any questions about the vehicle, timings, or anything else, just reply here and I'll get you an answer.\n\nQuote reference: {quote_id}\n\nBest regards,\n{rep}"
+  },
+  fu2: {
+    subject: 'Checking in on your transportation for {start_date}',
+    body: "Hi {customer},\n\nJust checking in on the quote we put together for {start_date} ({amount}). I know plans can take time to firm up, so no rush at all.\n\nIf anything has changed \u2014 dates, group size, pickup location \u2014 I'm happy to put together a revised quote.\n\nQuote reference: {quote_id}\n\nBest regards,\n{rep}"
+  },
+  fu3: {
+    subject: 'Still holding availability for {start_date}',
+    body: "Hi {customer},\n\nI wanted to reach out one last time about your quote for {start_date} ({amount}). We still have availability, but I can't guarantee it much longer as the date gets closer.\n\nIf you'd like to move forward, just let me know and I'll get everything booked. And if you've decided to go another direction, no problem at all \u2014 I'd appreciate knowing so I can free up the vehicle.\n\nQuote reference: {quote_id}\n\nBest regards,\n{rep}"
+  },
+  general: {
+    subject: 'Your quote {quote_id} \u2014 {start_date}',
+    body: "Hi {customer},\n\nFollowing up on your quote for {start_date} ({amount}).\n\nQuote reference: {quote_id}\n\nBest regards,\n{rep}"
   }
-  return { subject, body: body + ref + signoff };
+};
+
+// Falls back to the built-in default for anything not customised.
+function getTemplates(){
+  const t = state.templates || {};
+  const out = {};
+  for(const {key} of TEMPLATE_KEYS){
+    out[key] = {
+      subject: (t[key] && typeof t[key].subject === 'string') ? t[key].subject : DEFAULT_TEMPLATES[key].subject,
+      body:    (t[key] && typeof t[key].body    === 'string') ? t[key].body    : DEFAULT_TEMPLATES[key].body
+    };
+  }
+  return out;
+}
+
+// Replaces {tokens} with this quote's values. Missing values get sensible
+// fallbacks rather than leaving a blank gap mid-sentence.
+function fillTokens(text, q){
+  const map = {
+    '{customer}':     q._customer || 'there',
+    '{quote_id}':     q._rowId || '',
+    '{amount}':       q._value ? fmtMoney(q._value) : 'the quoted amount',
+    '{start_date}':   q._startDate ? fmtLongDate(q._startDate) : 'your requested date',
+    '{created_date}': q._date ? fmtLongDate(q._date) : '',
+    '{days_old}':     (q._daysOld != null ? String(q._daysOld) : ''),
+    '{rep}':          (q._rep && q._rep !== 'Unassigned') ? q._rep : '',
+    '{email}':        q._email || '',
+    '{phone}':        q._phone || ''
+  };
+  return String(text).replace(/\{[a-z_]+\}/g, m => (m in map ? map[m] : m));
+}
+
+// idx: 0 = 48h, 1 = 7-day, 2 = 14-day, null = general.
+function emailTemplate(q, idx){
+  const key = idx === 0 ? 'fu1' : idx === 1 ? 'fu2' : idx === 2 ? 'fu3' : 'general';
+  const t = getTemplates()[key];
+  return { subject: fillTokens(t.subject, q), body: fillTokens(t.body, q) };
 }
 
 function buildMailto(q, idx){
@@ -1702,13 +1984,18 @@ document.getElementById('dueScope').addEventListener('click', e=>{
   state.dueScope = btn.dataset.scope;
   renderFollowUpQueue();
 });
-document.querySelector('.mail-mode .seg').addEventListener('click', e=>{
-  const btn = e.target.closest('.seg-btn');
-  if(!btn) return;
-  document.querySelectorAll('.mail-mode .seg-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  state.mailMode = btn.dataset.mail;
-  renderFollowUpQueue();
+document.querySelectorAll('.mail-mode-seg').forEach(seg=>{
+  seg.addEventListener('click', e=>{
+    const btn = e.target.closest('.seg-btn');
+    if(!btn) return;
+    state.mailMode = btn.dataset.mail;
+    // keep both tabs' toggles showing the same choice
+    document.querySelectorAll('.mail-mode-seg .seg-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.mail === state.mailMode);
+    });
+    renderPipeline();
+    renderFollowUpQueue();
+  });
 });
 
 // stage multiselect open/close
@@ -1816,6 +2103,9 @@ async function loadData(isRetry){
     let savedMapping = null;
     try{ savedMapping = await loadConfigMapping(); }
     catch(e){ console.error('mapping load failed', e); }
+
+    try{ state.templates = await loadConfig('templates'); }
+    catch(e){ console.error('template load failed', e); state.templates = null; }
 
     state.mapping = {};
     for(const k of Object.keys(autoMapping)){
