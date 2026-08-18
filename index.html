@@ -14,17 +14,17 @@
        →  API  →  copy "Project URL" and the "anon public" key
 
      Example of what they look like:
-       SUPABASE_URL:      https://cciczxpogwiuupguptvc.supabase.co
-       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjaWN6eHBvZ3dpdXVwZ3VwdHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNTc0NzYsImV4cCI6MjEwMjYzMzQ3Nn0.AktdM_4sp3fZheteA3YB8PN9s5hB0OHBJYfAx4zikWo
+       SUPABASE_URL:      https://abcdefghijklm.supabase.co
+       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6...  (very long)
 
      Keep the quotes. Replace only the text between them.
      ============================================================ -->
 <script>
 window.ANCHOR_CONFIG = {
 
-  SUPABASE_URL:      "PASTE_YOUR_SUPABASE_URL_HERE",
+  SUPABASE_URL:      "https://cciczxpogwiuupguptvc.supabase.co",
 
-  SUPABASE_ANON_KEY: "PASTE_YOUR_SUPABASE_ANON_KEY_HERE"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjaWN6eHBvZ3dpdXVwZ3VwdHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNTc0NzYsImV4cCI6MjEwMjYzMzQ3Nn0.AktdM_4sp3fZheteA3YB8PN9s5hB0OHBJYfAx4zikWo"
 
 };
 </script>
@@ -750,6 +750,7 @@ window.ANCHOR_CONFIG = {
         <div class="stat-line"><span>Consolidated quotations</span><span id="statQuoteRows">—</span></div>
         <div class="stat-line"><span>Booking rows loaded</span><span id="statBookingRows">—</span></div>
         <div class="stat-line"><span>Last synced</span><span id="statSynced">—</span></div>
+        <div class="stat-line"><span>File version</span><span id="statBuild">—</span></div>
       </div>
 
       <div class="panel settings-section">
@@ -823,8 +824,10 @@ const ROW_CAP = 20000;
 
 // Supabase credentials are set at the very top of this file (see CONFIG block in <head>)
 const CFG = window.ANCHOR_CONFIG || {};
+const CONFIG_BLOCK_MISSING = (typeof window.ANCHOR_CONFIG === 'undefined');
 const SUPABASE_URL  = CFG.SUPABASE_URL || "PASTE_YOUR_SUPABASE_URL_HERE";
 const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+const BUILD_STAMP = "build-2026-08-18b";
 
 let state = {
   quotesRaw: [],
@@ -1375,6 +1378,8 @@ function renderSettings(){
     (state.hiddenExpiredCount ? ` (${state.hiddenExpiredCount.toLocaleString()} expired hidden)` : '');
   document.getElementById('statBookingRows').textContent = state.bookingsRaw.length.toLocaleString();
   document.getElementById('statSynced').textContent = state.lastSynced ? state.lastSynced.toLocaleString() : '—';
+  const bs = document.getElementById('statBuild');
+  if(bs) bs.textContent = BUILD_STAMP;
 
   const fields = [
     {key:'idField', label:'Quotation ID (consolidates lines)'},
@@ -1884,12 +1889,41 @@ document.getElementById('retryBtn').addEventListener('click', ()=>loadData(true)
 // ---------- boot ----------
 async function boot(){
   if(!supabaseConfigured()){
-    // Loud, not silent: the app is unusable as a shared CRM until this is set.
+    // Diagnose precisely why, rather than just saying "not configured".
+    const urlSet = !SUPABASE_URL.startsWith('PASTE_');
+    const keySet = !SUPABASE_ANON_KEY.startsWith('PASTE_');
+    let diagnosis, fix;
+
+    if(CONFIG_BLOCK_MISSING){
+      diagnosis = 'The config block at the top of the file did not run at all.';
+      fix = 'This almost always means a typo broke it while pasting — usually doubled quotes '
+          + '(like ""https://…"") or a missing comma. Open the file, check the CONFIG block near line 25, '
+          + 'and make sure each line looks exactly like:  SUPABASE_URL: "https://xxxxx.supabase.co",';
+    } else if(!urlSet && !keySet){
+      diagnosis = 'The config block ran, but both values are still the placeholder text.';
+      fix = 'The file being served is not the file you edited. If you are on GitHub Pages: confirm you '
+          + 'committed and pushed the edited file, wait a minute for the deploy, then hard-refresh '
+          + '(Ctrl+Shift+R, or Cmd+Shift+R on Mac). Also check you did not re-download a fresh copy over your edits.';
+    } else if(!urlSet){
+      diagnosis = 'The anon key is set, but SUPABASE_URL is still the placeholder.';
+      fix = 'Paste your Project URL (looks like https://xxxxx.supabase.co) into SUPABASE_URL.';
+    } else {
+      diagnosis = 'The Project URL is set, but SUPABASE_ANON_KEY is still the placeholder.';
+      fix = 'Paste the long anon public key (starts with eyJhbGc…) into SUPABASE_ANON_KEY.';
+    }
+
+    document.getElementById('configWarning').innerHTML =
+      '<strong>Supabase not configured — nothing can be saved.</strong> ' + escapeHtml(diagnosis);
     document.getElementById('configWarning').style.display = 'block';
     document.getElementById('loadingState').style.display = 'none';
     document.getElementById('errorState').style.display = 'flex';
-    document.getElementById('errorDetail').textContent =
-      'Supabase is not configured, so no follow-up data can be saved or shared. Add your project URL and anon key to the script block, then reload.';
+    document.getElementById('errorDetail').innerHTML =
+      '<strong>' + escapeHtml(diagnosis) + '</strong><br><br>' + escapeHtml(fix)
+      + '<br><br><span style="font-family:var(--font-mono); font-size:12px; color:var(--slate-500);">'
+      + 'config block loaded: ' + (CONFIG_BLOCK_MISSING ? 'NO' : 'yes')
+      + ' · URL: ' + escapeHtml(urlSet ? SUPABASE_URL.slice(0,34) : 'not set')
+      + ' · key: ' + (keySet ? 'set (' + SUPABASE_ANON_KEY.length + ' chars)' : 'not set')
+      + ' · ' + BUILD_STAMP + '</span>';
     return;
   }
   if(!initSupabase()){
