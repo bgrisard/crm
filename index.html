@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anchor CRM</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --navy-950:#12304d;
@@ -421,8 +422,153 @@
   .settings-section{ margin-bottom: 26px; }
   .settings-section h3{ font-size:14px; margin:0 0 4px; font-family: var(--font-display); }
   .settings-section .desc{ font-size:12px; color:var(--slate-500); margin:0 0 14px; }
+  /* ---------- Auth / status ---------- */
+  .config-warning{
+    background: var(--danger-bg); color: var(--danger);
+    border-bottom:1px solid var(--danger);
+    padding:11px 20px; font-size:13px; text-align:center;
+  }
+  .config-warning code{
+    background:rgba(224,49,49,0.12); padding:1px 5px; border-radius:4px;
+    font-family:var(--font-mono); font-size:12px;
+  }
+  .auth-screen{
+    position:fixed; inset:0; z-index:200;
+    background: linear-gradient(160deg, var(--navy-900), var(--navy-950));
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .auth-card{
+    background:#fff; border-radius:14px; padding:34px 32px;
+    width:100%; max-width:380px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.3);
+  }
+  .auth-brand{ font-family:var(--font-display); font-size:24px; font-weight:600; }
+  .auth-sub{ font-size:13.5px; color:var(--slate-500); margin:5px 0 24px; }
+  .auth-label{
+    display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px;
+    font-weight:700; color:var(--slate-500); margin-bottom:5px;
+  }
+  .auth-input{
+    width:100%; padding:10px 12px; border:1px solid var(--line);
+    border-radius:8px; font-size:14px; margin-bottom:16px;
+  }
+  .auth-btn{
+    width:100%; padding:11px; border-radius:8px; border:none;
+    background: var(--navy-800); color:#fff; font-size:14px; font-weight:700;
+  }
+  .auth-btn:hover{ background: var(--navy-700); }
+  .auth-btn:disabled{ opacity:0.6; }
+  .auth-error{ color:var(--danger); font-size:12.5px; margin-top:12px; min-height:16px; }
+  .save-indicator{ font-size:12px; font-weight:700; font-family:var(--font-mono); }
+  .save-indicator.idle{ color:transparent; }
+  .save-indicator.saving{ color: var(--slate-300); }
+  .save-indicator.saved{ color: #6ee7b7; }
+  .save-indicator.error{
+    color:#fff; background:var(--danger); padding:3px 9px; border-radius:5px; font-size:11px;
+  }
+  .user-chip{
+    display:flex; align-items:center; gap:9px;
+    font-size:12px; color:var(--slate-300);
+    padding-left:14px; border-left:1px solid rgba(255,255,255,0.14);
+  }
+  .signout-btn{
+    background:rgba(255,255,255,0.08); color:var(--slate-100);
+    border:1px solid rgba(255,255,255,0.14); border-radius:6px;
+    padding:5px 10px; font-size:11.5px; font-weight:600;
+  }
+  .signout-btn:hover{ background:rgba(255,255,255,0.16); }
+  .live-toast{
+    position:fixed; bottom:24px; left:50%; transform:translate(-50%, 20px);
+    background: var(--navy-800); color:#fff;
+    padding:11px 18px; border-radius:100px; font-size:13px; font-weight:600;
+    box-shadow:0 8px 28px rgba(18,48,77,0.3);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s;
+    z-index:150;
+  }
+  .live-toast.show{ opacity:1; transform:translate(-50%, 0); }
+
   .stat-line{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--slate-100); }
   .stat-line span:last-child{ font-family: var(--font-mono); font-weight:600; }
+
+  /* ---------- Follow-up queue ---------- */
+  .tab-count{
+    display:inline-block; margin-left:6px;
+    background: var(--danger); color:#fff;
+    border-radius:100px; padding:1px 7px;
+    font-size:10.5px; font-weight:700; font-family: var(--font-mono);
+    vertical-align: middle;
+  }
+  .tab-count.zero{ background: rgba(255,255,255,0.18); color: var(--slate-300); }
+  .due-summary{ display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:6px; }
+  .due-stat{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; box-shadow: var(--shadow-card);
+    border-left:3px solid var(--slate-300);
+  }
+  .due-stat.overdue{ border-left-color: var(--danger); }
+  .due-stat.today{ border-left-color: var(--warn); }
+  .due-stat.upcoming{ border-left-color: var(--success); }
+  .due-stat-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.7px; color:var(--slate-500); font-weight:700; margin-bottom:6px; }
+  .due-stat-value{ font-family: var(--font-mono); font-size:22px; font-weight:600; line-height:1; }
+  .due-stat-sub{ font-size:11.5px; color:var(--slate-500); margin-top:5px; }
+
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; background:#fff; }
+  .seg-btn{
+    padding:8px 13px; font-size:12.5px; font-weight:600;
+    background:#fff; border:none; color:var(--slate-500);
+    border-right:1px solid var(--line);
+  }
+  .seg-btn:last-child{ border-right:none; }
+  .seg-btn:hover{ background: var(--slate-100); }
+  .seg-btn.active{ background: var(--navy-800); color:#fff; }
+  .mail-mode{ display:flex; align-items:center; gap:9px; }
+  .mail-mode-label{ font-size:12.5px; color:var(--slate-500); font-weight:600; }
+
+  .due-card{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; margin-bottom:10px; box-shadow: var(--shadow-card);
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    border-left:4px solid var(--slate-300);
+  }
+  .due-card.is-overdue{ border-left-color: var(--danger); }
+  .due-card.is-today{ border-left-color: var(--warn); }
+  .due-card.is-upcoming{ border-left-color: var(--success); }
+  .due-main{ flex:1; min-width:240px; }
+  .due-customer{ font-size:14.5px; font-weight:700; margin-bottom:3px; }
+  .due-meta{ font-size:12px; color:var(--slate-500); display:flex; gap:12px; flex-wrap:wrap; }
+  .due-meta .mono{ font-family: var(--font-mono); }
+  .due-which{
+    font-size:10.5px; font-weight:700; letter-spacing:0.3px;
+    padding:3px 9px; border-radius:100px; white-space:nowrap;
+  }
+  .due-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn-draft{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:8px 13px; border-radius:7px; font-size:12.5px; font-weight:700;
+    background: var(--info); color:#fff; border:1px solid var(--info);
+    text-decoration:none; white-space:nowrap;
+  }
+  .btn-draft:hover{ background:#1c6fd8; }
+  .btn-draft svg{ width:14px; height:14px; }
+  .btn-done{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 12px; border-radius:7px; font-size:12.5px; font-weight:600;
+    background:#fff; border:1px solid var(--line); color:var(--navy-900); white-space:nowrap;
+  }
+  .btn-done:hover{ background: var(--success-bg); border-color: var(--success); color: var(--success); }
+  .due-empty{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:48px 20px; text-align:center; box-shadow: var(--shadow-card);
+  }
+  .due-empty h3{ font-family:var(--font-display); font-size:18px; margin:10px 0 6px; color:var(--navy-950); }
+  .due-empty p{ font-size:13.5px; color:var(--slate-500); margin:0; }
+  .due-group-head{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.8px;
+    font-weight:700; color:var(--slate-500); margin:20px 0 10px;
+  }
+  @media (max-width: 820px){
+    .due-summary{ grid-template-columns:1fr; }
+  }
 
   @media (max-width: 980px){
     .navtabs{ overflow-x:auto; }
@@ -431,20 +577,48 @@
 </head>
 <body>
 
+<!-- CONFIG WARNING -->
+<div id="configWarning" class="config-warning" style="display:none;">
+  <strong>Supabase not configured.</strong> Follow-ups, stages and notes cannot be saved until
+  <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> are filled in near the top of this file's script block.
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="auth-screen" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-brand">Anchor CRM</div>
+    <p class="auth-sub">Sign in to access the sales pipeline.</p>
+    <label class="auth-label">Work email</label>
+    <input type="email" id="authEmail" class="auth-input" autocomplete="username" placeholder="you@anchor.com">
+    <label class="auth-label">Password</label>
+    <input type="password" id="authPassword" class="auth-input" autocomplete="current-password" placeholder="••••••••">
+    <button class="auth-btn" id="authSubmit">Sign in</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<div id="liveToast" class="live-toast"></div>
+
 <div class="topbar">
   <div class="brand">
     <div class="brand-text">Anchor CRM</div>
   </div>
   <div class="navtabs" id="navtabs">
     <button class="navtab active" data-view="pipeline">Pipeline</button>
+    <button class="navtab" data-view="followups">Follow-ups <span class="tab-count" id="dueTabCount">0</span></button>
     <button class="navtab" data-view="settings">Settings</button>
   </div>
   <div style="display:flex; align-items:center; gap:14px;">
+    <span class="save-indicator idle" id="saveIndicator"></span>
     <div class="sync-pill"><span class="dot" id="syncDot"></span><span id="syncLabel">Loading…</span></div>
     <button class="refresh-btn" id="refreshBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
       Refresh
     </button>
+    <div class="user-chip" id="userChip" style="display:none;">
+      <span id="userEmail"></span>
+      <button class="signout-btn" id="signOutBtn" title="Sign out">Sign out</button>
+    </div>
   </div>
 </div>
 
@@ -501,6 +675,37 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- FOLLOW-UPS -->
+    <section class="view" id="view-followups">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div>
+          <h1 class="page-title">Follow-ups due</h1>
+          <p class="page-sub">Everything due or overdue. Click a draft button to open a pre-written email in Outlook.</p>
+        </div>
+        <select class="filter-select rep-filter-sync" id="filterRepFollowups" style="margin-top:2px;"><option value="">All reps</option></select>
+      </div>
+
+      <div class="due-summary" id="dueSummary"></div>
+
+      <div class="toolbar" style="margin-top:18px;">
+        <div class="seg" id="dueScope">
+          <button class="seg-btn active" data-scope="all">All due</button>
+          <button class="seg-btn" data-scope="overdue">Overdue</button>
+          <button class="seg-btn" data-scope="today">Due today</button>
+        </div>
+        <div style="flex:1;"></div>
+        <div class="mail-mode">
+          <span class="mail-mode-label">Open in:</span>
+          <div class="seg">
+            <button class="seg-btn active" data-mail="desktop">Outlook desktop</button>
+            <button class="seg-btn" data-mail="web">Outlook web</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="dueList"></div>
     </section>
 
     <!-- SETTINGS -->
@@ -588,6 +793,11 @@ const QUOTES_URL = "https://docs.google.com/spreadsheets/d/1mhkZ2kaQ3URdP5bj0nsy
 const BOOKINGS_URL = "https://docs.google.com/spreadsheets/d/1BVsZrcqfIEtI5IaOkJ0dMTrRZqXd0atofDPOcjhmnK0/gviz/tq?tqx=out:csv&gid=340417330";
 const ROW_CAP = 20000;
 
+// ---------- Supabase config ----------
+// Fill these in from your Supabase project: Settings → API
+const SUPABASE_URL  = "PASTE_YOUR_SUPABASE_URL_HERE";
+const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+
 let state = {
   quotesRaw: [],
   bookingsRaw: [],
@@ -595,23 +805,130 @@ let state = {
   headers: [],
   mapping: {},
   notes: {},
+  user: null,
   view: 'pipeline',
   page: 1,
   pageSize: 50,
   sortKey: null,
   sortDir: 'desc',
-  filters: { search: '', rep: '', stage: [] }
+  filters: { search: '', rep: '', stage: [] },
+  mailMode: 'desktop',
+  dueScope: 'all'
 };
 
-// ---------- storage helpers ----------
-async function loadShared(key, fallback){
-  try{
-    const r = await window.storage.get(key, true);
-    return r ? JSON.parse(r.value) : fallback;
-  }catch(e){ return fallback; }
+// ---------- save status indicator (never fail silently) ----------
+let saveTimer = null;
+function setSaveStatus(mode, detail){
+  const el = document.getElementById('saveIndicator');
+  if(!el) return;
+  clearTimeout(saveTimer);
+  el.className = 'save-indicator ' + mode;
+  if(mode === 'saving')  el.textContent = 'Saving…';
+  if(mode === 'saved'){  el.textContent = 'Saved'; saveTimer = setTimeout(()=>{ el.className='save-indicator idle'; el.textContent=''; }, 2000); }
+  if(mode === 'error')   el.textContent = 'NOT SAVED — ' + (detail || 'error');
+  if(mode === 'idle')    el.textContent = '';
 }
-async function saveShared(key, value){
-  try{ await window.storage.set(key, JSON.stringify(value), true); }catch(e){ console.error('storage set failed', e); }
+
+// ---------- Supabase client + persistence ----------
+let sb = null;
+function supabaseConfigured(){
+  return !SUPABASE_URL.startsWith('PASTE_') && !SUPABASE_ANON_KEY.startsWith('PASTE_');
+}
+function initSupabase(){
+  if(!supabaseConfigured()) return false;
+  if(!window.supabase || !window.supabase.createClient) return false;
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return true;
+}
+
+// Reads every activity row and rebuilds state.notes keyed by QuotationID.
+async function loadActivity(){
+  const { data, error } = await sb.from('crm_activity').select('*');
+  if(error) throw error;
+  const notes = {};
+  for(const row of (data||[])){
+    notes[row.quotation_id] = {
+      stage: row.stage || '',
+      note: row.note || '',
+      followUps: Array.isArray(row.followups) ? row.followups : [],
+      updatedAt: row.updated_at,
+      updatedBy: row.updated_by
+    };
+  }
+  return notes;
+}
+
+// Writes one quotation's activity. Surfaces failures loudly.
+async function saveActivity(rowId){
+  const rec = state.notes[rowId] || {};
+  setSaveStatus('saving');
+  try{
+    const { error } = await sb.from('crm_activity').upsert({
+      quotation_id: rowId,
+      stage: rec.stage || null,
+      note: rec.note || null,
+      followups: rec.followUps || [],
+      updated_at: new Date().toISOString(),
+      updated_by: state.user ? state.user.email : null
+    }, { onConflict: 'quotation_id' });
+    if(error) throw error;
+    setSaveStatus('saved');
+    return true;
+  }catch(err){
+    console.error('saveActivity failed', err);
+    setSaveStatus('error', err.message || 'check connection');
+    return false;
+  }
+}
+
+async function loadConfigMapping(){
+  const { data, error } = await sb.from('crm_config').select('*').eq('key','mapping').maybeSingle();
+  if(error) throw error;
+  return data ? data.value : null;
+}
+async function saveConfigMapping(mapping){
+  setSaveStatus('saving');
+  try{
+    const { error } = await sb.from('crm_config').upsert(
+      { key:'mapping', value: mapping, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+    if(error) throw error;
+    setSaveStatus('saved');
+  }catch(err){
+    console.error('saveConfigMapping failed', err);
+    setSaveStatus('error', err.message || 'check connection');
+  }
+}
+
+// Live sync: pick up other reps' changes without a refresh.
+function subscribeToActivity(){
+  if(!sb) return;
+  sb.channel('crm_activity_changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'crm_activity' }, payload=>{
+      const row = payload.new;
+      if(!row || !row.quotation_id) return;
+      // Ignore echoes of our own writes
+      if(row.updated_by && state.user && row.updated_by === state.user.email) return;
+      state.notes[row.quotation_id] = {
+        stage: row.stage || '',
+        note: row.note || '',
+        followUps: Array.isArray(row.followups) ? row.followups : [],
+        updatedAt: row.updated_at,
+        updatedBy: row.updated_by
+      };
+      renderPipeline();
+      renderFollowUpQueue();
+      showLiveToast(row.updated_by);
+    })
+    .subscribe();
+}
+function showLiveToast(who){
+  const el = document.getElementById('liveToast');
+  if(!el) return;
+  el.textContent = (who ? who.split('@')[0] : 'A teammate') + ' just made an update';
+  el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 3200);
 }
 
 // ---------- fetch + parse ----------
@@ -873,7 +1190,7 @@ async function toggleFollowUp(rowId, idx, completed){
   rec.followUps = followUps;
   rec.updatedAt = new Date().toISOString();
   state.notes[rowId] = rec;
-  await saveShared('crm_notes', state.notes);
+  await saveActivity(rowId);
 }
 
 function decorateQuotesForDisplay(arr){
@@ -1053,7 +1370,7 @@ function renderSettings(){
   grid.querySelectorAll('select').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
       state.mapping[sel.dataset.field] = sel.value || null;
-      await saveShared('crm_mapping', state.mapping);
+      await saveConfigMapping(state.mapping);
       buildModel();
       renderAll();
     });
@@ -1062,6 +1379,7 @@ function renderSettings(){
 
 function renderAll(){
   renderPipeline();
+  renderFollowUpQueue();
   renderSettings();
 }
 
@@ -1094,16 +1412,183 @@ function openModal(q){
   document.getElementById('modalOverlay').classList.add('active');
 }
 
-function buildMailto(q){
-  const subject = `Your quote ${q._rowId}` + (q._startDate ? ` — ${q._startDate.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}` : '');
-  const greeting = q._customer ? `Hi ${q._customer},` : 'Hello,';
-  const body = `${greeting}\n\nFollowing up on your quote (${q._rowId})`
-    + (q._value ? ` for ${fmtMoney(q._value)}` : '')
-    + (q._startDate ? `, with a start date of ${q._startDate.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}` : '')
-    + `.\n\n\n\nBest regards,\n${q._rep && q._rep !== 'Unassigned' ? q._rep : ''}`;
+// ---------- follow-up queue ----------
+function collectDueFollowUps(){
+  decorateQuotesForDisplay(state.quotes);
+  const arr = repFilteredQuotes();
+  const items = [];
+  const now = Date.now();
+  for(const q of arr){
+    if(effectiveStage(q) === 'won' || effectiveStage(q) === 'lost') continue; // don't chase closed deals
+    if(!q._email) continue; // nothing to draft without an address
+    for(let idx=0; idx<3; idx++){
+      const st = followUpStatus(q, idx);
+      if(st.state === 'done' || st.state === 'nodate') continue;
+      if(st.state === 'upcoming') continue; // not due yet
+      // only surface the earliest outstanding follow-up per quote
+      items.push({ q, idx, dueMs: st.dueMs, state: st.state });
+      break;
+    }
+  }
+  // classify: overdue (past due), today (due within today)
+  const endOfToday = new Date(); endOfToday.setHours(23,59,59,999);
+  for(const it of items){
+    if(it.dueMs < now) it.bucket = 'overdue';
+    else if(it.dueMs <= endOfToday.getTime()) it.bucket = 'today';
+    else it.bucket = 'upcoming';
+  }
+  items.sort((a,b)=> a.dueMs - b.dueMs);
+  return items;
+}
+
+function renderFollowUpQueue(){
+  const all = collectDueFollowUps();
+  const counts = {
+    overdue: all.filter(i=>i.bucket==='overdue').length,
+    today: all.filter(i=>i.bucket==='today').length,
+    upcoming: all.filter(i=>i.bucket==='upcoming').length
+  };
+  const totalValue = all.reduce((s,i)=>s+i.q._value,0);
+
+  // tab badge
+  const badge = document.getElementById('dueTabCount');
+  const badgeCount = counts.overdue + counts.today;
+  badge.textContent = badgeCount;
+  badge.classList.toggle('zero', badgeCount === 0);
+
+  document.getElementById('dueSummary').innerHTML = `
+    <div class="due-stat overdue">
+      <div class="due-stat-label">Overdue</div>
+      <div class="due-stat-value" style="color:var(--danger)">${counts.overdue}</div>
+      <div class="due-stat-sub">Past their follow-up date</div>
+    </div>
+    <div class="due-stat today">
+      <div class="due-stat-label">Due today</div>
+      <div class="due-stat-value" style="color:var(--warn)">${counts.today}</div>
+      <div class="due-stat-sub">Coming due before midnight</div>
+    </div>
+    <div class="due-stat upcoming">
+      <div class="due-stat-label">Value in queue</div>
+      <div class="due-stat-value">${fmtMoney(totalValue)}</div>
+      <div class="due-stat-sub">${all.length} quote${all.length===1?'':'s'} awaiting contact</div>
+    </div>`;
+
+  const scope = state.dueScope || 'all';
+  let items = all;
+  if(scope === 'overdue') items = all.filter(i=>i.bucket==='overdue');
+  if(scope === 'today') items = all.filter(i=>i.bucket==='today');
+
+  const list = document.getElementById('dueList');
+  if(!items.length){
+    list.innerHTML = `<div class="due-empty">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+      <h3>Nothing due right now</h3>
+      <p>${all.length ? 'No follow-ups in this filter — try “All due”.' : 'Every follow-up is either completed or not yet due.'}</p>
+    </div>`;
+    return;
+  }
+
+  const labels = ['Follow-up 1 · 48h','Follow-up 2 · 7 days','Follow-up 3 · 14 days'];
+  const bucketClass = {overdue:'is-overdue', today:'is-today', upcoming:'is-upcoming'};
+  const whichStyle = {
+    overdue:'background:var(--danger-bg); color:var(--danger)',
+    today:'background:var(--warn-bg); color:var(--warn)',
+    upcoming:'background:var(--success-bg); color:var(--success)'
+  };
+
+  list.innerHTML = items.map(it=>{
+    const q = it.q;
+    const dueStr = new Date(it.dueMs).toLocaleDateString('en-US',{month:'short', day:'numeric', year:'numeric'});
+    const daysLate = Math.floor((Date.now() - it.dueMs)/86400000);
+    const timing = it.bucket==='overdue'
+      ? `${daysLate} day${daysLate===1?'':'s'} overdue`
+      : it.bucket==='today' ? 'Due today' : `Due ${dueStr}`;
+    return `<div class="due-card ${bucketClass[it.bucket]}" data-due-id="${encodeURIComponent(q._rowId)}" data-due-idx="${it.idx}">
+      <div class="due-main">
+        <div class="due-customer">${escapeHtml(q._customer || 'Unnamed customer')}</div>
+        <div class="due-meta">
+          <span class="mono">${escapeHtml(q._rowId)}</span>
+          <span>${escapeHtml(q._rep)}</span>
+          <span class="mono">${fmtMoney(q._value)}</span>
+          <span>${q._daysOld!=null ? q._daysOld+' days old' : ''}</span>
+          <span>${escapeHtml(q._email)}</span>
+        </div>
+      </div>
+      <span class="due-which" style="${whichStyle[it.bucket]}">${labels[it.idx]} · ${timing}</span>
+      <div class="due-actions">
+        <a class="btn-draft" href="${escapeHtml(draftLink(q, it.idx))}" ${state.mailMode==='web'?'target="_blank" rel="noopener"':''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+          Draft email
+        </a>
+        <button class="btn-done" data-mark-done>✓ Mark done</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('[data-mark-done]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const card = btn.closest('[data-due-id]');
+      const id = decodeURIComponent(card.dataset.dueId);
+      await toggleFollowUp(id, parseInt(card.dataset.dueIdx), true);
+      renderFollowUpQueue();
+      renderPipeline();
+    });
+  });
+}
+function fmtLongDate(d){
+  return d ? d.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'}) : '';
+}
+
+// idx: 0 = 48h nudge, 1 = 7-day check-in, 2 = 14-day final touch. null = generic.
+function emailTemplate(q, idx){
+  const name = q._customer || 'there';
+  const greeting = `Hi ${name},`;
+  const trip = q._startDate ? ` for ${fmtLongDate(q._startDate)}` : '';
+  const amount = q._value ? ` (${fmtMoney(q._value)})` : '';
+  const signoff = `\n\nBest regards,\n${q._rep && q._rep !== 'Unassigned' ? q._rep : ''}\nAnchor Transportation`;
+  const ref = `\n\nQuote reference: ${q._rowId}`;
+
+  let subject, body;
+  if(idx === 0){
+    subject = `Following up on your quote${trip ? ' for '+fmtLongDate(q._startDate) : ''}`;
+    body = `${greeting}\n\nThanks for reaching out to us about your transportation${trip}. `
+      + `I wanted to make sure you received the quote we sent over${amount}.\n\n`
+      + `If you have any questions about the vehicle, timings, or anything else, just reply here and I'll get you an answer.`;
+  } else if(idx === 1){
+    subject = `Checking in on your transportation${trip}`;
+    body = `${greeting}\n\nJust checking in on the quote we put together${trip}${amount}. `
+      + `I know plans can take time to firm up, so no rush at all.\n\n`
+      + `If anything has changed — dates, group size, pickup location — I'm happy to put together a revised quote.`;
+  } else if(idx === 2){
+    subject = `Still holding availability${trip}`;
+    body = `${greeting}\n\nI wanted to reach out one last time about your quote${trip}${amount}. `
+      + `We still have availability, but I can't guarantee it much longer as the date gets closer.\n\n`
+      + `If you'd like to move forward, just let me know and I'll get everything booked. `
+      + `And if you've decided to go another direction, no problem at all — I'd appreciate knowing so I can free up the vehicle.`;
+  } else {
+    subject = `Your quote ${q._rowId}${trip ? ' — '+fmtLongDate(q._startDate) : ''}`;
+    body = `${greeting}\n\nFollowing up on your quote${trip}${amount}.`;
+  }
+  return { subject, body: body + ref + signoff };
+}
+
+function buildMailto(q, idx){
+  const { subject, body } = emailTemplate(q, idx===undefined ? null : idx);
   return 'mailto:' + encodeURIComponent(q._email)
     + '?subject=' + encodeURIComponent(subject)
     + '&body=' + encodeURIComponent(body);
+}
+
+function buildOutlookWebLink(q, idx){
+  const { subject, body } = emailTemplate(q, idx===undefined ? null : idx);
+  return 'https://outlook.office.com/mail/deeplink/compose'
+    + '?to=' + encodeURIComponent(q._email)
+    + '&subject=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+}
+
+function draftLink(q, idx){
+  return state.mailMode === 'web' ? buildOutlookWebLink(q, idx) : buildMailto(q, idx);
 }
 
 function renderStagePills(q){
@@ -1119,7 +1604,7 @@ function renderStagePills(q){
       rec.stage = btn.dataset.stage;
       rec.updatedAt = new Date().toISOString();
       state.notes[q._rowId] = rec;
-      await saveShared('crm_notes', state.notes);
+      await saveActivity(q._rowId);
       renderStagePills(q);
       renderPipeline();
       document.getElementById('saveStatus').textContent = 'Stage saved ✓';
@@ -1156,8 +1641,8 @@ document.getElementById('saveNoteBtn').addEventListener('click', async ()=>{
   const rec = state.notes[activeQuote._rowId] || {};
   rec.note = note; rec.updatedAt = new Date().toISOString();
   state.notes[activeQuote._rowId] = rec;
-  await saveShared('crm_notes', state.notes);
-  document.getElementById('saveStatus').textContent = 'Note saved ✓';
+  const ok = await saveActivity(activeQuote._rowId);
+  document.getElementById('saveStatus').textContent = ok ? 'Note saved ✓' : 'Save failed — not stored';
   renderPipeline();
 });
 
@@ -1170,8 +1655,28 @@ function onRepFilterChange(value){
   state.page = 1;
   document.querySelectorAll('.rep-filter-sync').forEach(sel=>{ sel.value = value; });
   renderPipeline();
+  renderFollowUpQueue();
 }
 document.getElementById('filterRep').addEventListener('change', e=> onRepFilterChange(e.target.value));
+document.getElementById('filterRepFollowups').addEventListener('change', e=> onRepFilterChange(e.target.value));
+
+// due-queue scope + mail mode toggles
+document.getElementById('dueScope').addEventListener('click', e=>{
+  const btn = e.target.closest('.seg-btn');
+  if(!btn) return;
+  document.querySelectorAll('#dueScope .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state.dueScope = btn.dataset.scope;
+  renderFollowUpQueue();
+});
+document.querySelector('.mail-mode .seg').addEventListener('click', e=>{
+  const btn = e.target.closest('.seg-btn');
+  if(!btn) return;
+  document.querySelectorAll('.mail-mode .seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state.mailMode = btn.dataset.mail;
+  renderFollowUpQueue();
+});
 
 // stage multiselect open/close
 const stageMulti = document.getElementById('stageMulti');
@@ -1207,10 +1712,18 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('clearNotesBtn').addEventListener('click', async ()=>{
-  if(!confirm('Clear all team notes and stage overrides? This cannot be undone.')) return;
-  state.notes = {};
-  await saveShared('crm_notes', {});
-  renderAll();
+  if(!confirm('Clear ALL follow-ups, stages and notes for the whole team? This cannot be undone.')) return;
+  setSaveStatus('saving');
+  try{
+    const { error } = await sb.from('crm_activity').delete().neq('quotation_id','');
+    if(error) throw error;
+    state.notes = {};
+    setSaveStatus('saved');
+    renderAll();
+  }catch(err){
+    console.error(err);
+    setSaveStatus('error', err.message || 'delete failed');
+  }
 });
 
 function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
@@ -1242,46 +1755,133 @@ async function loadData(isRetry){
   const refreshBtn = document.getElementById('refreshBtn');
   refreshBtn.classList.add('spinning');
 
+  // Step 1: the sheets. A failure here is a sheet/connection problem.
+  let quotesRaw, bookingsRaw;
   try{
-    const [quotesRaw, bookingsRaw] = await Promise.all([fetchCsv(QUOTES_URL), fetchCsv(BOOKINGS_URL)]);
+    [quotesRaw, bookingsRaw] = await Promise.all([fetchCsv(QUOTES_URL), fetchCsv(BOOKINGS_URL)]);
+  }catch(err){
+    console.error('sheet fetch failed', err);
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'flex';
+    document.getElementById('errorDetail').textContent =
+      'Could not load the Google Sheets: ' + err.message
+      + '. Check that both sheets are shared as "Anyone with the link — Viewer", and that this page is served over http(s), not opened as a local file.';
+    setSyncStatus('error', 'Sheet sync failed');
+    refreshBtn.classList.remove('spinning');
+    return;
+  }
+
+  // Step 2: rep activity from Supabase. A failure here must be loud — it means
+  // follow-ups/stages/notes are missing, which is very different from a sheet problem.
+  let activityError = null;
+  try{
     state.quotesRaw = quotesRaw;
     state.bookingsRaw = bookingsRaw;
 
     const headers = quotesRaw.length ? Object.keys(quotesRaw[0]) : [];
-    const savedMapping = await loadShared('crm_mapping', null);
     const autoMapping = autoDetectMapping(headers);
-    // merge: prefer saved mapping values but validate they still exist in headers
+    let savedMapping = null;
+    try{ savedMapping = await loadConfigMapping(); }
+    catch(e){ console.error('mapping load failed', e); }
+
     state.mapping = {};
     for(const k of Object.keys(autoMapping)){
       const saved = savedMapping && savedMapping[k];
       state.mapping[k] = (saved && headers.includes(saved)) ? saved : autoMapping[k];
     }
 
-    state.notes = await loadShared('crm_notes', {});
-
-    buildModel();
-    state.lastSynced = new Date();
-    setSyncStatus('ok', 'Synced ' + state.lastSynced.toLocaleTimeString());
-
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('appRoot').style.display = 'block';
-    renderAll();
+    state.notes = await loadActivity();
   }catch(err){
-    console.error(err);
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('errorState').style.display = 'flex';
-    document.getElementById('errorDetail').textContent =
-      'Fetch failed: ' + err.message + '. Make sure both sheets are set to "Anyone with the link" can view (Share button, top right of the sheet).';
-    setSyncStatus('error', 'Sync failed');
-  }finally{
-    refreshBtn.classList.remove('spinning');
+    console.error('activity load failed', err);
+    activityError = err;
+    state.notes = state.notes || {};
+  }
+
+  buildModel();
+  state.lastSynced = new Date();
+
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  renderAll();
+  refreshBtn.classList.remove('spinning');
+
+  if(activityError){
+    setSyncStatus('error', 'Follow-up data unavailable');
+    setSaveStatus('error', 'could not load saved follow-ups');
+  } else {
+    setSyncStatus('ok', 'Synced ' + state.lastSynced.toLocaleTimeString());
   }
 }
 
+// ---------- auth ----------
+function showAuthScreen(show){
+  document.getElementById('authScreen').style.display = show ? 'flex' : 'none';
+}
+function setAuthError(msg){
+  document.getElementById('authError').textContent = msg || '';
+}
+async function handleSignIn(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn = document.getElementById('authSubmit');
+  if(!email || !password){ setAuthError('Enter your email and password.'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  setAuthError('');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign in';
+  if(error){ setAuthError(error.message); return; }
+  onSignedIn(data.user);
+}
+function onSignedIn(user){
+  state.user = user;
+  document.getElementById('userChip').style.display = 'flex';
+  document.getElementById('userEmail').textContent = user.email;
+  showAuthScreen(false);
+  subscribeToActivity();
+  loadData(false);
+}
+async function handleSignOut(){
+  await sb.auth.signOut();
+  state.user = null;
+  location.reload();
+}
+
+document.getElementById('authSubmit').addEventListener('click', handleSignIn);
+document.getElementById('authPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') handleSignIn(); });
+document.getElementById('authEmail').addEventListener('keydown', e=>{ if(e.key==='Enter') handleSignIn(); });
+document.getElementById('signOutBtn').addEventListener('click', handleSignOut);
 document.getElementById('refreshBtn').addEventListener('click', ()=>loadData(true));
 document.getElementById('retryBtn').addEventListener('click', ()=>loadData(true));
 
-loadData(false);
+// ---------- boot ----------
+async function boot(){
+  if(!supabaseConfigured()){
+    // Loud, not silent: the app is unusable as a shared CRM until this is set.
+    document.getElementById('configWarning').style.display = 'block';
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'flex';
+    document.getElementById('errorDetail').textContent =
+      'Supabase is not configured, so no follow-up data can be saved or shared. Add your project URL and anon key to the script block, then reload.';
+    return;
+  }
+  if(!initSupabase()){
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'flex';
+    document.getElementById('errorDetail').textContent =
+      'The Supabase library did not load. Check your internet connection or any script blockers, then reload.';
+    return;
+  }
+  // Restore an existing session if there is one, otherwise show the sign-in screen.
+  const { data } = await sb.auth.getSession();
+  if(data && data.session && data.session.user){
+    onSignedIn(data.session.user);
+  } else {
+    document.getElementById('loadingState').style.display = 'none';
+    showAuthScreen(true);
+  }
+}
+
+boot();
 
 })();
 </script>
