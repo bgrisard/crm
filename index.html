@@ -4,6 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anchor CRM</title>
+
+<!-- ============================================================
+     ⬇⬇⬇  PASTE YOUR SUPABASE KEYS HERE  ⬇⬇⬇
+     This is the ONLY part of this file you need to edit.
+
+     Where to find them:
+       supabase.com  →  your project  →  Settings (gear icon)
+       →  API  →  copy "Project URL" and the "anon public" key
+
+     Example of what they look like:
+       SUPABASE_URL:      https://cciczxpogwiuupguptvc.supabase.co
+       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjaWN6eHBvZ3dpdXVwZ3VwdHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNTc0NzYsImV4cCI6MjEwMjYzMzQ3Nn0.AktdM_4sp3fZheteA3YB8PN9s5hB0OHBJYfAx4zikWo
+
+     Keep the quotes. Replace only the text between them.
+     ============================================================ -->
+<script>
+window.ANCHOR_CONFIG = {
+
+  SUPABASE_URL:      "PASTE_YOUR_SUPABASE_URL_HERE",
+
+  SUPABASE_ANON_KEY: "PASTE_YOUR_SUPABASE_ANON_KEY_HERE"
+
+};
+</script>
+<!-- ============================================================
+     ⬆⬆⬆  END OF THE PART YOU EDIT  ⬆⬆⬆
+     ============================================================ -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -793,10 +821,10 @@ const QUOTES_URL = "https://docs.google.com/spreadsheets/d/1mhkZ2kaQ3URdP5bj0nsy
 const BOOKINGS_URL = "https://docs.google.com/spreadsheets/d/1BVsZrcqfIEtI5IaOkJ0dMTrRZqXd0atofDPOcjhmnK0/gviz/tq?tqx=out:csv&gid=340417330";
 const ROW_CAP = 20000;
 
-// ---------- Supabase config ----------
-// Fill these in from your Supabase project: Settings → API
-const SUPABASE_URL  = "PASTE_YOUR_SUPABASE_URL_HERE";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+// Supabase credentials are set at the very top of this file (see CONFIG block in <head>)
+const CFG = window.ANCHOR_CONFIG || {};
+const SUPABASE_URL  = CFG.SUPABASE_URL || "PASTE_YOUR_SUPABASE_URL_HERE";
+const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
 
 let state = {
   quotesRaw: [],
