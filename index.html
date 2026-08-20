@@ -303,6 +303,17 @@ window.ANCHOR_CONFIG = {
     white-space:nowrap;
   }
   thead th:hover{ color:#fff; }
+  thead tr#pipelineFilterRow th{
+    background:#fff;
+    border-bottom:1px solid var(--line);
+    padding:6px 8px;
+    position: sticky;
+    top: 33px;
+    z-index:9;
+    cursor:default;
+  }
+  thead tr#pipelineFilterRow th:hover{ color:inherit; }
+  thead tr#pipelineFilterRow th.row-accent{ padding:0 !important; }
   thead th .arrow{ margin-left:4px; opacity:0.6; font-size:10px; }
   tbody tr{ border-bottom:1px solid var(--slate-100); cursor:pointer; transition: background .1s; }
   tbody tr:hover{ background: var(--slate-100); }
@@ -518,6 +529,63 @@ window.ANCHOR_CONFIG = {
     z-index:150;
   }
   .live-toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+  /* ---------- Lead scoring ---------- */
+  .score-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 8px; border-radius:100px;
+    font-size:10px; font-weight:800; letter-spacing:0.4px; white-space:nowrap;
+  }
+  .score-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .score-pct{ font-family:var(--font-mono); font-weight:700; opacity:0.85; }
+  .score-hot{ background:var(--danger-bg); color:var(--danger); }
+  .score-warm{ background:var(--warn-bg); color:var(--warn); }
+  .score-cold{ background:var(--slate-100); color:var(--slate-500); }
+  .score-none{ font-size:12.5px; color:var(--slate-500); margin:0; }
+  .score-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .score-big{ font-family:var(--font-mono); font-size:24px; font-weight:700; }
+  .score-vs{ font-size:12px; color:var(--slate-500); }
+  .sf-legend{ font-size:11px; color:var(--slate-500); margin-bottom:8px; }
+  .sf-row{ display:grid; grid-template-columns: 1.5fr 90px 46px 78px; gap:9px; align-items:center; padding:4px 0; }
+  .sf-name{ font-size:12.5px; font-weight:600; }
+  .sf-val{ display:block; font-size:11px; color:var(--slate-500); font-weight:500; }
+  .sf-bar{ background:var(--slate-100); border-radius:100px; height:6px; overflow:hidden; }
+  .sf-fill{ height:100%; border-radius:100px; }
+  .sf-fill.up{ background:var(--success); }
+  .sf-fill.down{ background:var(--danger); }
+  .sf-num{ font-family:var(--font-mono); font-size:11.5px; font-weight:700; text-align:right; }
+  .sf-num.up{ color:var(--success); }
+  .sf-num.down{ color:var(--danger); }
+  .sf-hist{ font-size:10.5px; color:var(--slate-500); font-family:var(--font-mono); }
+  .model-quality{ border-radius:9px; padding:14px 16px; margin:16px 0; border:1px solid var(--line); }
+  .model-quality.good{ background:var(--success-bg); border-color:var(--success); }
+  .model-quality.ok{ background:var(--info-bg); border-color:var(--info); }
+  .model-quality.warn{ background:var(--warn-bg); border-color:var(--warn); }
+  .model-quality.bad{ background:var(--danger-bg); border-color:var(--danger); }
+  .mq-line{ font-size:12.5px; margin-bottom:12px; }
+  .mq-stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .mq-num{ display:block; font-family:var(--font-mono); font-size:21px; font-weight:700; }
+  .mq-lbl{ display:block; font-size:10.5px; color:var(--slate-500); margin-top:2px; }
+  .mq-verdict{ margin-top:12px; font-size:12.5px; }
+  .model-warn{
+    background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn);
+    border-radius:9px; padding:12px 14px; font-size:12.5px; margin:14px 0;
+  }
+  .recency-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .recency-label{ font-size:12.5px; font-weight:600; color:var(--navy-800); }
+  .mq-compare{ margin-top:10px; font-size:12px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.07); }
+  .model-table-wrap{ margin-top:18px; }
+  .mt-title{ font-size:11px; text-transform:uppercase; letter-spacing:0.6px; font-weight:700; color:var(--slate-500); margin-bottom:8px; }
+  .model-table{ width:100%; min-width:0; border-collapse:collapse; font-size:12.5px; }
+  .model-table th{
+    position:static; background:var(--slate-100); color:var(--slate-500);
+    text-align:left; padding:7px 10px; font-size:10px; letter-spacing:0.5px; cursor:default;
+  }
+  .model-table td{ padding:7px 10px; border-bottom:1px solid var(--slate-100); white-space:normal; }
+  .model-table td span{ font-family:var(--font-mono); font-weight:700; margin-left:5px; }
+  .mv-good span{ color:var(--success); }
+  .mv-bad span{ color:var(--danger); }
+  .model-caveat{ font-size:11.5px; color:var(--slate-500); margin-top:14px; line-height:1.5; font-style:italic; }
 
   .stat-line{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--slate-100); }
   .stat-line span:last-child{ font-family: var(--font-mono); font-weight:600; }
@@ -737,13 +805,6 @@ window.ANCHOR_CONFIG = {
       <div class="toolbar">
         <input type="text" class="search-input" id="searchInput" placeholder="Search customer, ID, rep…">
         <select class="filter-select rep-filter-sync" id="filterRep"><option value="">All reps</option></select>
-        <div class="multiselect" id="stageMulti">
-          <button class="multiselect-toggle" id="stageMultiToggle">
-            <span id="stageMultiLabel">All stages</span>
-            <span class="caret">▾</span>
-          </button>
-          <div class="multiselect-menu" id="stageMultiMenu"></div>
-        </div>
         <button class="btn" id="clearFilters">Clear</button>
         <button class="btn" id="exportBtn">Export CSV</button>
         <div style="flex:1;"></div>
@@ -756,10 +817,18 @@ window.ANCHOR_CONFIG = {
         </div>
       </div>
 
+      <div class="multiselect" id="stageMulti" style="display:none;">
+        <button class="multiselect-toggle" id="stageMultiToggle">
+          <span id="stageMultiLabel">All stages</span>
+          <span class="caret">▾</span>
+        </button>
+        <div class="multiselect-menu" id="stageMultiMenu"></div>
+      </div>
+
       <div class="table-wrap">
         <div class="table-scroll">
           <table id="pipelineTable">
-            <thead><tr id="pipelineHead"></tr></thead>
+            <thead><tr id="pipelineHead"></tr><tr id="pipelineFilterRow"></tr></thead>
             <tbody id="pipelineBody"></tbody>
           </table>
         </div>
@@ -830,6 +899,16 @@ window.ANCHOR_CONFIG = {
       </div>
 
       <div class="panel settings-section">
+        <h3>Lead scoring model</h3>
+        <p class="desc">Built automatically from your own quote history every time data loads. Nothing is hand-tuned.</p>
+        <div class="recency-row">
+          <label class="recency-label">How much should recent quotes count for?</label>
+          <select class="filter-select" id="recencySelect"></select>
+        </div>
+        <div id="scoreModelInfo"></div>
+      </div>
+
+      <div class="panel settings-section">
         <h3>Follow-up email templates</h3>
         <p class="desc">These are the emails the Draft buttons produce. Edits are saved to Supabase and shared with the whole team.</p>
 
@@ -887,6 +966,11 @@ window.ANCHOR_CONFIG = {
       </div>
 
       <div class="modal-section">
+        <div class="field-label" style="margin-bottom:8px;">Lead score</div>
+        <div id="modalScore"></div>
+      </div>
+
+      <div class="modal-section">
         <div class="field-label" style="margin-bottom:8px;">Follow-up tasks</div>
         <div id="modalFollowUps" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
@@ -921,7 +1005,10 @@ window.ANCHOR_CONFIG = {
 
 const QUOTES_URL = "https://docs.google.com/spreadsheets/d/1mhkZ2kaQ3URdP5bj0nsyJ5hdwF7CV4cExQYrrDVXS38/gviz/tq?tqx=out:csv&gid=0";
 const BOOKINGS_URL = "https://docs.google.com/spreadsheets/d/1BVsZrcqfIEtI5IaOkJ0dMTrRZqXd0atofDPOcjhmnK0/gviz/tq?tqx=out:csv&gid=340417330";
-const ROW_CAP = 20000;
+// Safety limit on rows pulled from the sheet. If the sheet ever exceeds this,
+// we keep the MOST RECENT rows (never the oldest), because dropping new quotes
+// would silently hide live work. state.rowCapHit flags it in Settings.
+const ROW_CAP = 60000;
 
 // Supabase credentials are set at the very top of this file (see CONFIG block in <head>)
 const CFG = window.ANCHOR_CONFIG || {};
@@ -938,13 +1025,16 @@ let state = {
   mapping: {},
   notes: {},
   templates: null,
+  allQuotes: [],
+  scoreModel: null,
+  recency: 'balanced',
   user: null,
   view: 'pipeline',
   page: 1,
   pageSize: 50,
   sortKey: null,
   sortDir: 'desc',
-  filters: { search: '', rep: '', stage: [] },
+  filters: { search: '', rep: '', stage: ['','contacted','followed_up','negotiating','lost'] },
   mailMode: 'desktop',
   dueScope: 'all'
 };
@@ -1103,6 +1193,7 @@ function autoDetectMapping(headers){
   m.emailField = findHeader(headers, ['customeremail','clientemail','email']);
   m.phoneField = findHeader(headers, ['customerphone','clientphone','mobile','phonenumber','phone','tel']);
   m.statusField = findHeader(headers, ['status'], true) || findHeader(headers, ['status','stage']);
+  m.clientIdField = findHeader(headers, ['clientid'], true) || findHeader(headers, ['clientid','customerid','accountid','clientcode']);
   return m;
 }
 
@@ -1149,7 +1240,21 @@ function buildModel(){
   }
 
   const m = state.mapping;
-  const allLines = state.quotesRaw.slice(0, ROW_CAP).map((row, i)=>{
+  // Keep the newest rows if we're over the cap: sort by created date where we
+  // can, otherwise assume the sheet is appended to and take the tail.
+  let sourceRows = state.quotesRaw;
+  state.rowCapHit = sourceRows.length > ROW_CAP;
+  if(state.rowCapHit){
+    const df = m.createdDateField || m.dateField;
+    if(df){
+      sourceRows = sourceRows.slice().sort((a,b)=>{
+        const da = parseDate(a[df]), dbb = parseDate(b[df]);
+        return (da?da.getTime():0) - (dbb?dbb.getTime():0);
+      });
+    }
+    sourceRows = sourceRows.slice(-ROW_CAP);
+  }
+  const allLines = sourceRows.map((row, i)=>{
     const phid = m.privateHireIdField ? (row[m.privateHireIdField]||'').toString().trim() : '';
     const isWon = phid ? wonSet.has(phid) : false;
     const rowId = m.idField ? (row[m.idField]||('row_'+i)).toString() : ('row_'+i);
@@ -1191,6 +1296,7 @@ function buildModel(){
 
   // Hide expired quotes globally: keep only quotes still "Current" or already Won (a booking stays visible regardless of its status text)
   state.allQuotesCount = allQuotes.length;
+  state.allQuotes = allQuotes;           // full history, used to train lead scoring
   state.quotes = allQuotes.filter(q => q._isWon || q._isCurrent);
   state.hiddenExpiredCount = allQuotes.length - state.quotes.length;
 }
@@ -1236,6 +1342,339 @@ function getFilteredQuotes(){
   return arr;
 }
 
+// ============================================================
+//  LEAD SCORING
+//  Learns from resolved quotes in your own sheet (booked vs.
+//  never-booked) and scores each open quote's chance of booking.
+//  No hand-picked rules — every weight comes from your history.
+// ============================================================
+
+// A quote counts as RESOLVED (usable for training) when we know how it ended:
+//   won  = it converted to a booking
+//   lost = its status is no longer Current, or the trip date passed, and it never booked
+// Open quotes with a future trip date are "still in play" — outcome unknown, so
+// they're excluded from training (including them would bias the model downward).
+function quoteOutcome(q){
+  if(q._isWon) return 1;
+  if(!q._isCurrent || isPastStartDate(q)) return 0;
+  return null;
+}
+
+// Stable identity for a customer so repeat business can be detected.
+// Prefers an explicit client-id column, then email, then a normalised name.
+function customerKey(q){
+  const m = state.mapping;
+  if(m.clientIdField){
+    const v = (q._raw[m.clientIdField]||'').toString().trim();
+    if(v) return 'id:'+v.toLowerCase();
+  }
+  if(q._email) return 'em:'+q._email.toLowerCase();
+  if(q._customer) return 'nm:'+norm(q._customer);
+  return null;
+}
+
+function leadTimeDays(q){
+  if(!q._date || !q._startDate) return null;
+  return Math.round((q._startDate.getTime() - q._date.getTime())/86400000);
+}
+function bandLeadTime(d){
+  if(d===null) return null;
+  if(d < 7)   return '0-6 days';
+  if(d < 30)  return '7-29 days';
+  if(d < 90)  return '30-89 days';
+  if(d < 180) return '90-179 days';
+  return '180+ days';
+}
+function bandAmount(v, cuts){
+  if(!v || !cuts || !cuts.length) return null;
+  if(v <= cuts[0]) return 'lowest 25%';
+  if(v <= cuts[1]) return 'lower-mid 25%';
+  if(v <= cuts[2]) return 'upper-mid 25%';
+  return 'highest 25%';
+}
+function quantiles(arr){
+  if(arr.length < 8) return null;
+  const s = arr.slice().sort((a,b)=>a-b);
+  const at = p => s[Math.floor(p*(s.length-1))];
+  return [at(0.25), at(0.5), at(0.75)];
+}
+
+// Columns we already use structurally, so we don't re-learn them as raw text.
+function reservedHeaders(){
+  const m = state.mapping;
+  return new Set([m.idField, m.privateHireIdField, m.customerField, m.emailField,
+                  m.phoneField, m.createdDateField, m.startDateField, m.valueField,
+                  m.statusField, m.repField, m.clientIdField].filter(Boolean));
+}
+
+// Finds extra columns worth learning from (source, quote type, client code, etc.)
+// without knowing their names ahead of time: any low-cardinality text column
+// with decent coverage across resolved quotes.
+function detectCategoricalFeatures(resolved){
+  const reserved = reservedHeaders();
+  const cands = [];
+  for(const h of state.headers){
+    if(reserved.has(h)) continue;
+    const vals = new Map();
+    let filled = 0;
+    for(const q of resolved){
+      const v = (q._raw[h]||'').toString().trim();
+      if(!v) continue;
+      filled++;
+      vals.set(v, (vals.get(v)||0)+1);
+    }
+    const coverage = resolved.length ? filled/resolved.length : 0;
+    const distinct = vals.size;
+    // needs to actually vary, not be a free-text field, and cover most rows
+    if(distinct >= 2 && distinct <= 40 && coverage >= 0.5){
+      cands.push({header:h, distinct, coverage});
+    }
+  }
+  return cands;
+}
+
+// Turns one quote into the set of features the model reasons over.
+function featurize(q, ctx){
+  const f = {};
+  f['Rep'] = q._rep || 'Unassigned';
+
+  const amt = bandAmount(q._value, ctx.amountCuts);
+  if(amt) f['Quote size'] = amt;
+
+  const lt = bandLeadTime(leadTimeDays(q));
+  if(lt) f['Booking lead time'] = lt;
+
+  if(q._startDate){
+    f['Trip month'] = q._startDate.toLocaleDateString('en-US',{month:'long'});
+  }
+  if(q._date){
+    const dow = q._date.toLocaleDateString('en-US',{weekday:'long'});
+    f['Quote created on'] = dow;
+  }
+
+  // Repeat-customer history, computed leave-one-out to avoid the quote
+  // scoring itself on its own outcome.
+  const ck = customerKey(q);
+  if(ck && ctx.custStats.has(ck)){
+    const st = ctx.custStats.get(ck);
+    const own = quoteOutcome(q);
+    const total = st.total - (own===null?0:1);
+    const won = st.won - (own===1?1:0);
+    if(total <= 0) f['Customer history'] = 'first quote from them';
+    else if(won === 0) f['Customer history'] = 'quoted before, never booked';
+    else if(won === total) f['Customer history'] = 'booked every time before';
+    else f['Customer history'] = 'booked some of the time before';
+  } else {
+    f['Customer history'] = 'first quote from them';
+  }
+
+  for(const c of ctx.categoricals){
+    const v = (q._raw[c.header]||'').toString().trim();
+    if(v) f[c.header] = v;
+  }
+  return f;
+}
+
+// Naive-Bayes-style log-odds. Each feature value's conversion rate is smoothed
+// toward the base rate, so a value seen 3 times can't swing the score wildly.
+// ---- Recency weighting ----
+// Recent quotes count for more, but old ones never stop counting: each preset
+// has a half-life (how fast influence decays) and a floor (the minimum weight
+// the oldest quote can ever fall to).
+const RECENCY_PRESETS = {
+  off:      {label:'Off — all history counts equally', halfLifeMonths: null, floor: 1},
+  gentle:   {label:'Gentle — 3 year half-life',        halfLifeMonths: 36,   floor: 0.35},
+  balanced: {label:'Balanced — 18 month half-life',    halfLifeMonths: 18,   floor: 0.25},
+  strong:   {label:'Strong — 9 month half-life',       halfLifeMonths: 9,    floor: 0.15}
+};
+function recencyPreset(){
+  return RECENCY_PRESETS[state.recency] || RECENCY_PRESETS.balanced;
+}
+// refDate = newest quote in the training set, so weights don't shift with today's date.
+function recencyWeight(q, refDate, preset){
+  if(!preset.halfLifeMonths || !q._date || !refDate) return 1;
+  const months = (refDate - q._date.getTime()) / (86400000*30.44);
+  if(months <= 0) return 1;
+  const decay = Math.pow(0.5, months / preset.halfLifeMonths);
+  return preset.floor + (1 - preset.floor) * decay;
+}
+
+const PRIOR_STRENGTH = 12;   // how many "virtual" base-rate observations to add
+const MAX_CONTRIB    = 1.1;  // cap any single feature's influence (log-odds)
+const DAMPING        = 0.65; // features correlate; this stops overconfidence
+
+function trainScoreModel(quotes){
+  const preset = recencyPreset();
+  const resolved = quotes.filter(q=>quoteOutcome(q)!==null);
+  const wonCount = resolved.filter(q=>quoteOutcome(q)===1).length;
+  const model = {
+    ok:false, reason:'', n:resolved.length, won:wonCount,
+    base: resolved.length ? wonCount/resolved.length : 0,
+    weights:{}, features:[], thresholds:{hot:0.5,warm:0.25},
+    eval:null, ctx:null, preset
+  };
+  if(resolved.length < 40){
+    model.reason = `Only ${resolved.length} quotes have a known outcome. Need at least 40 before scoring is meaningful.`;
+    return model;
+  }
+  if(wonCount === 0 || wonCount === resolved.length){
+    model.reason = 'Every historical quote has the same outcome, so there is nothing to learn from.';
+    return model;
+  }
+  const refDate = Math.max(...resolved.map(q=>q._date?q._date.getTime():0));
+  const trained = trainRaw(resolved, refDate, preset);
+  if(!trained){
+    model.reason = 'Could not build a model from this history.';
+    return model;
+  }
+  Object.assign(model, trained, {n:resolved.length, won:wonCount, preset});
+  model.features = Object.keys(model.weights);
+  model.ok = true;
+
+  const scored = resolved.map(q=>({p:scoreWith(model,q).p, y:quoteOutcome(q)}));
+  const ps = scored.map(x=>x.p).sort((a,b)=>a-b);
+  model.thresholds = {
+    hot:  ps[Math.floor(0.75*(ps.length-1))],
+    warm: ps[Math.floor(0.40*(ps.length-1))]
+  };
+  model.eval = evaluateModel(quotes, preset);
+  return model;
+}
+
+function scoreWith(model, q){
+  if(!model.ok) return { p: model.base, factors: [] };
+  const base = model.base;
+  const baseLO = Math.log(base/(1-base));
+  const f = featurize(q, model.ctx);
+  let lo = baseLO;
+  const factors = [];
+  for(const [fk, fv] of Object.entries(f)){
+    const w = model.weights[fk] && model.weights[fk][fv];
+    if(!w) continue;
+    const c = w.contrib * DAMPING;
+    lo += c;
+    factors.push({ feature: fk, value: fv, contrib: c, n: w.n, rate: w.rate });
+  }
+  factors.sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib));
+  return { p: 1/(1+Math.exp(-lo)), factors };
+}
+
+// Honest check: train on older quotes, test on newer ones the model never saw.
+function evaluateModel(quotes, preset){
+  const resolved = quotes.filter(q=>quoteOutcome(q)!==null && q._date)
+                         .sort((a,b)=>a._date-b._date);
+  if(resolved.length < 80) return { ok:false, reason:'Not enough dated history for a holdout test.' };
+  const cut = Math.floor(resolved.length*0.75);
+  const train = resolved.slice(0,cut), test = resolved.slice(cut);
+  if(!train.length || test.length < 15) return { ok:false, reason:'Holdout sample too small.' };
+
+  // Reference point is the END OF TRAINING, never the test period — otherwise
+  // the weighting would peek at data the model is supposed to be blind to.
+  const trainRef = Math.max(...train.map(q=>q._date.getTime()));
+
+  function aucFor(pset){
+    const m = trainRaw(train, trainRef, pset);
+    if(!m) return null;
+    const scored = test.map(q=>({p:scoreWith(m,q).p, y:quoteOutcome(q)}));
+    const pos = scored.filter(x=>x.y===1), neg = scored.filter(x=>x.y===0);
+    if(!pos.length || !neg.length) return null;
+    const sorted = scored.slice().sort((x,y)=>x.p-y.p);
+    let rankSum = 0;
+    sorted.forEach((x,i)=>{ if(x.y===1) rankSum += (i+1); });
+    const auc = (rankSum - pos.length*(pos.length+1)/2)/(pos.length*neg.length);
+    const byScore = scored.slice().sort((x,y)=>y.p-x.p);
+    const topN = Math.max(1, Math.floor(byScore.length*0.2));
+    const topRate = byScore.slice(0,topN).filter(x=>x.y===1).length/topN;
+    const baseRate = pos.length/scored.length;
+    return { auc, topRate, baseRate, lift: baseRate ? topRate/baseRate : 1 };
+  }
+
+  const withW = aucFor(preset || recencyPreset());
+  const noW   = aucFor(RECENCY_PRESETS.off);
+  if(!withW) return { ok:false, reason:'Holdout period has only one outcome.' };
+
+  return { ok:true, ...withW,
+           unweightedAuc: noW ? noW.auc : null,
+           trainN: train.length, testN: test.length };
+}
+
+// Bare training used by the holdout test (no recursion into evaluation).
+function trainRaw(resolved, refDate, preset){
+  preset = preset || recencyPreset();
+  if(refDate === undefined){
+    refDate = Math.max(...resolved.map(q=>q._date?q._date.getTime():0));
+  }
+  const W = resolved.map(q=>recencyWeight(q, refDate, preset));
+  let wTot = 0, wWon = 0;
+  resolved.forEach((q,i)=>{ wTot += W[i]; if(quoteOutcome(q)===1) wWon += W[i]; });
+  const rawWon = resolved.filter(q=>quoteOutcome(q)===1).length;
+  if(resolved.length < 30 || rawWon === 0 || rawWon === resolved.length) return null;
+  const base = wTot ? wWon/wTot : 0;
+  if(base <= 0 || base >= 1) return null;
+
+  const custStats = new Map();
+  for(const q of resolved){
+    const ck = customerKey(q); if(!ck) continue;
+    if(!custStats.has(ck)) custStats.set(ck, {total:0, won:0});
+    const st = custStats.get(ck); st.total++; if(quoteOutcome(q)===1) st.won++;
+  }
+  const ctx = {
+    amountCuts: quantiles(resolved.map(q=>q._value).filter(v=>v>0)),
+    custStats,
+    categoricals: detectCategoricalFeatures(resolved)
+  };
+
+  // Weighted counts: nw/ww drive the rate, n/w kept for honest "seen X times" display.
+  const counts = {};
+  resolved.forEach((q,i)=>{
+    const y = quoteOutcome(q), wt = W[i];
+    const f = featurize(q, ctx);
+    for(const [fk,fv] of Object.entries(f)){
+      counts[fk] = counts[fk]||{};
+      counts[fk][fv] = counts[fk][fv]||{n:0,w:0,nw:0,ww:0};
+      const c = counts[fk][fv];
+      c.n++; c.nw += wt;
+      if(y===1){ c.w++; c.ww += wt; }
+    }
+  });
+
+  const baseLO = Math.log(base/(1-base));
+  const weights = {};
+  for(const [fk,vals] of Object.entries(counts)){
+    weights[fk] = {};
+    for(const [fv,c] of Object.entries(vals)){
+      const rate = (c.ww + PRIOR_STRENGTH*base) / (c.nw + PRIOR_STRENGTH);
+      const r = Math.min(0.995, Math.max(0.005, rate));
+      let contrib = Math.log(r/(1-r)) - baseLO;
+      contrib = Math.max(-MAX_CONTRIB, Math.min(MAX_CONTRIB, contrib));
+      weights[fk][fv] = { contrib, n:c.n, w:c.w, rate: c.nw ? c.ww/c.nw : base };
+    }
+  }
+  return { ok:true, base, weights, ctx, refDate, preset };
+}
+
+function leadBucket(p){
+  const t = state.scoreModel ? state.scoreModel.thresholds : {hot:0.5, warm:0.25};
+  if(p >= t.hot) return 'hot';
+  if(p >= t.warm) return 'warm';
+  return 'cold';
+}
+
+// Attaches a score to every quote currently in view.
+function applyLeadScores(){
+  const m = state.scoreModel;
+  if(!m || !m.ok){
+    for(const q of state.quotes){ q._score = null; q._scoreFactors = []; q._bucket = null; }
+    return;
+  }
+  for(const q of state.quotes){
+    const r = scoreWith(m, q);
+    q._score = r.p;
+    q._scoreFactors = r.factors;
+    q._bucket = leadBucket(r.p);
+  }
+}
+
 // ---------- rendering ----------
 function repFilteredQuotes(){
   return state.filters.rep ? state.quotes.filter(q=>q._rep===state.filters.rep) : state.quotes;
@@ -1254,8 +1693,16 @@ function stageDef(value){
 }
 function effectiveStage(q){
   const override = state.notes[q._rowId] && state.notes[q._rowId].stage;
-  if(override) return override;
-  return q._isWon ? 'won' : '';
+  if(override) return override;            // a rep's manual choice always wins
+  if(q._isWon) return 'won';
+  if(isPastStartDate(q)) return 'lost';    // trip date has been and gone, never booked
+  return '';
+}
+// True when the quoted trip date is already in the past.
+function isPastStartDate(q){
+  if(!q._startDate) return false;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return q._startDate.getTime() < today.getTime();
 }
 function stageBadge(q){
   const def = stageDef(effectiveStage(q));
@@ -1317,6 +1764,42 @@ function activeFollowUpIdx(q){
     return idx;
   }
   return null;
+}
+
+function renderScoreCell(q){
+  if(q._score === null || q._score === undefined)
+    return '<span style="color:var(--slate-300); font-size:11px;">—</span>';
+  const pct = Math.round(q._score*100);
+  const label = {hot:'HOT', warm:'WARM', cold:'COLD'}[q._bucket];
+  return `<span class="score-pill score-${q._bucket}" title="Estimated chance of booking">
+      <span class="score-dot"></span>${label} <span class="score-pct">${pct}%</span>
+    </span>`;
+}
+
+function renderScoreBreakdown(q){
+  const m = state.scoreModel;
+  if(!m || !m.ok) return `<p class="score-none">${escapeHtml(m ? m.reason : 'Scoring unavailable.')}</p>`;
+  if(q._score === null || q._score === undefined) return '<p class="score-none">No score for this quote.</p>';
+  const pct = Math.round(q._score*100);
+  const basePct = Math.round(m.base*100);
+  const top = q._scoreFactors.slice(0,6);
+  const rows = top.map(f=>{
+    const up = f.contrib >= 0;
+    const strength = Math.min(100, Math.abs(f.contrib)/1.1*100);
+    return `<div class="sf-row">
+      <div class="sf-name">${escapeHtml(f.feature)}<span class="sf-val">${escapeHtml(String(f.value))}</span></div>
+      <div class="sf-bar"><div class="sf-fill ${up?'up':'down'}" style="width:${strength.toFixed(0)}%"></div></div>
+      <div class="sf-num ${up?'up':'down'}">${up?'+':''}${(f.contrib).toFixed(2)}</div>
+      <div class="sf-hist">${Math.round(f.rate*100)}% of ${f.n}</div>
+    </div>`;
+  }).join('');
+  return `<div class="score-head">
+      <span class="score-pill score-${q._bucket}"><span class="score-dot"></span>${{hot:'HOT',warm:'WARM',cold:'COLD'}[q._bucket]}</span>
+      <span class="score-big">${pct}%</span>
+      <span class="score-vs">estimated chance of booking &middot; company average is ${basePct}%</span>
+    </div>
+    <div class="sf-legend">What's moving this score (historical booking rate for each trait)</div>
+    ${rows || '<p class="score-none">No distinguishing traits found for this quote.</p>'}`;
 }
 
 function renderDraftButton(q){
@@ -1392,6 +1875,29 @@ function renderPipelineHead(){
       renderPipeline();
     });
   });
+  renderPipelineFilterRow();
+}
+
+// Second header row holding per-column filter controls. The stage multiselect
+// is moved (not recreated) so its listeners and state survive re-renders.
+function renderPipelineFilterRow(){
+  const fr = document.getElementById('pipelineFilterRow');
+  if(!fr) return;
+  const stageIdx = PIPELINE_COLS.findIndex(c=>c.label==='Stage');
+  if(!fr.dataset.built){
+    fr.innerHTML = '<th class="row-accent filter-cell"></th>' +
+      PIPELINE_COLS.map((c,i)=>`<th class="filter-cell" data-filter-col="${i}"></th>`).join('');
+    fr.dataset.built = '1';
+  }
+  const cell = fr.querySelector(`[data-filter-col="${stageIdx}"]`);
+  const ms = document.getElementById('stageMulti');
+  if(cell && ms && ms.parentElement !== cell){
+    ms.style.display = '';
+    cell.appendChild(ms);
+  }
+  // Sit the filter row directly beneath the label row when sticky.
+  const head = document.getElementById('pipelineHead');
+  if(head && head.offsetHeight) fr.style.top = head.offsetHeight + 'px';
 }
 
 function renderPipeline(){
@@ -1419,6 +1925,7 @@ function renderPipeline(){
       <td>${startDateStr}</td>
       <td class="num">${fmtMoney(q._value)}</td>
       <td>${stageBadge(q)}</td>
+      <td>${renderScoreCell(q)}</td>
       <td class="num">${daysOldStr}</td>
       <td>${renderFollowUpCell(q,0)}</td>
       <td>${renderFollowUpCell(q,1)}</td>
@@ -1493,7 +2000,10 @@ function renderStageMultiselect(){
   });
   const label = document.getElementById('stageMultiLabel');
   const n = state.filters.stage.length;
-  if(n === 0) label.textContent = 'All stages';
+  const allVals = STAGES.map(s2=>s2.value);
+  const isAllButWon = n === allVals.length-1 && !state.filters.stage.includes('won');
+  if(n === 0 || n === allVals.length) label.textContent = 'All stages';
+  else if(isAllButWon) label.textContent = 'All except Won';
   else if(n === 1) label.textContent = stageDef(state.filters.stage[0]).label;
   else label.innerHTML = `Stages <span class="ms-count">${n}</span>`;
 }
@@ -1613,10 +2123,94 @@ function wireTemplateEditor(){
 }
 wireTemplateEditor();
 
+function renderRecencySelect(){
+  const sel = document.getElementById('recencySelect');
+  if(!sel) return;
+  if(!sel.dataset.built){
+    sel.innerHTML = Object.entries(RECENCY_PRESETS)
+      .map(([k,v])=>`<option value="${k}">${escapeHtml(v.label)}</option>`).join('');
+    sel.dataset.built = '1';
+    sel.addEventListener('change', async ()=>{
+      state.recency = sel.value;
+      await saveConfig('recency', state.recency);
+      state.scoreModel = trainScoreModel(state.allQuotes || []);
+      applyLeadScores();
+      renderPipeline();
+      renderScoreModelInfo();
+    });
+  }
+  sel.value = state.recency;
+}
+
+function renderScoreModelInfo(){
+  renderRecencySelect();
+  const el = document.getElementById('scoreModelInfo');
+  if(!el) return;
+  const m = state.scoreModel;
+  if(!m || !m.ok){
+    el.innerHTML = `<div class="model-warn">${escapeHtml(m ? m.reason : 'Model not built yet.')}</div>`;
+    return;
+  }
+  const ev = m.eval;
+  let quality;
+  if(!ev || !ev.ok){
+    quality = `<div class="model-warn">Couldn't run an accuracy test: ${escapeHtml(ev ? ev.reason : 'unknown')}. Treat scores as rough until there's more history.</div>`;
+  } else {
+    const auc = ev.auc;
+    const verdict = auc >= 0.70 ? ['strong','good'] : auc >= 0.60 ? ['useful','ok'] : auc >= 0.55 ? ['weak','warn'] : ['no better than guessing','bad'];
+    quality = `<div class="model-quality ${verdict[1]}">
+        <div class="mq-line"><strong>Accuracy check:</strong> trained on the oldest ${ev.trainN.toLocaleString()} resolved quotes, tested on the ${ev.testN.toLocaleString()} most recent ones it had never seen.</div>
+        <div class="mq-stats">
+          <div><span class="mq-num">${(auc*100).toFixed(0)}</span><span class="mq-lbl">ranking accuracy (50 = coin flip)</span></div>
+          <div><span class="mq-num">${(ev.topRate*100).toFixed(0)}%</span><span class="mq-lbl">actually booked among its top 20%</span></div>
+          <div><span class="mq-num">${ev.lift.toFixed(1)}×</span><span class="mq-lbl">better than picking at random</span></div>
+        </div>
+        <div class="mq-verdict">Predictive power: <strong>${verdict[0]}</strong></div>
+        ${ev.unweightedAuc!=null ? `<div class="mq-compare">
+            Recency weighting <strong>${(auc-ev.unweightedAuc)>=0.005?'is helping':((ev.unweightedAuc-auc)>=0.005?'is hurting':'makes little difference')}</strong>
+            here: ${(auc*100).toFixed(0)} with weighting vs ${(ev.unweightedAuc*100).toFixed(0)} without.
+            ${(ev.unweightedAuc-auc)>=0.005?'Consider setting it to Off.':''}
+          </div>` : ''}
+      </div>`;
+  }
+
+  const feats = m.features.map(f=>{
+    const vals = Object.entries(m.weights[f])
+      .filter(([,w])=>w.n >= 8)
+      .sort((a,b)=>b[1].contrib-a[1].contrib);
+    if(!vals.length) return '';
+    const best = vals[0], worst = vals[vals.length-1];
+    return `<tr>
+      <td>${escapeHtml(f)}</td>
+      <td class="mv-good">${escapeHtml(String(best[0]))} <span>${Math.round(best[1].rate*100)}%</span></td>
+      <td class="mv-bad">${escapeHtml(String(worst[0]))} <span>${Math.round(worst[1].rate*100)}%</span></td>
+      <td class="num">${vals.length}</td>
+    </tr>`;
+  }).filter(Boolean).join('');
+
+  el.innerHTML = `
+    <div class="stat-line"><span>Quotes with a known outcome</span><span>${m.n.toLocaleString()}</span></div>
+    <div class="stat-line"><span>Of those, booked</span><span>${m.won.toLocaleString()} (${(m.base*100).toFixed(1)}%)</span></div>
+    <div class="stat-line"><span>Traits the model found</span><span>${m.features.length}</span></div>
+    <div class="stat-line"><span>Hot / Warm cutoffs</span><span>${Math.round(m.thresholds.hot*100)}% / ${Math.round(m.thresholds.warm*100)}%</span></div>
+    <div class="stat-line"><span>Recency weighting</span><span style="font-family:inherit;font-weight:600;">${escapeHtml(m.preset ? m.preset.label : '—')}</span></div>
+    ${m.preset && m.preset.halfLifeMonths ? `<div class="stat-line"><span>Oldest quotes still count</span><span>${Math.round(m.preset.floor*100)}% of a new one</span></div>` : ''}
+    ${quality}
+    <div class="model-table-wrap">
+      <div class="mt-title">What predicts booking, by trait</div>
+      <table class="model-table">
+        <thead><tr><th>Trait</th><th>Best value</th><th>Worst value</th><th>Values</th></tr></thead>
+        <tbody>${feats}</tbody>
+      </table>
+    </div>
+    <p class="model-caveat">These are patterns in past data, not causes. A trait can look predictive because of something it stands in for. Use the scores to prioritise who to call first — not to decide a quote is hopeless.</p>`;
+}
+
 function renderSettings(){
   document.getElementById('statQuotesUrl').textContent = 'Live sheet (gviz CSV)';
   document.getElementById('statBookingsUrl').textContent = 'Live sheet (gviz CSV)';
-  document.getElementById('statSheetRows').textContent = state.quotesRaw.length.toLocaleString();
+  document.getElementById('statSheetRows').textContent = state.quotesRaw.length.toLocaleString()
+    + (state.rowCapHit ? ` — over the ${ROW_CAP.toLocaleString()} row limit, showing the most recent` : '');
   document.getElementById('statQuoteRows').textContent = (state.allQuotesCount||0).toLocaleString() +
     (state.hiddenExpiredCount ? ` (${state.hiddenExpiredCount.toLocaleString()} expired hidden)` : '');
   document.getElementById('statBookingRows').textContent = state.bookingsRaw.length.toLocaleString();
@@ -1624,6 +2218,7 @@ function renderSettings(){
   const bs = document.getElementById('statBuild');
   if(bs) bs.textContent = BUILD_STAMP;
   renderTemplateEditor();
+  renderScoreModelInfo();
 
   const fields = [
     {key:'idField', label:'Quotation ID (consolidates lines)'},
@@ -1635,7 +2230,8 @@ function renderSettings(){
     {key:'createdDateField', label:'Created date'},
     {key:'startDateField', label:'Start date'},
     {key:'valueField', label:'Amount (QuotationHighestTotal)'},
-    {key:'statusField', label:'Status ("Current" = open)'}
+    {key:'statusField', label:'Status ("Current" = open)'},
+    {key:'clientIdField', label:'Client ID (optional, groups repeat customers)'}
   ];
   const grid = document.getElementById('mappingGrid');
   grid.innerHTML = fields.map(f=>{
@@ -1655,6 +2251,8 @@ function renderSettings(){
 }
 
 function renderAll(){
+  state.scoreModel = trainScoreModel(state.allQuotes || []);
+  applyLeadScores();
   renderPipeline();
   renderFollowUpQueue();
   renderSettings();
@@ -1673,6 +2271,7 @@ function openModal(q){
   const rec = state.notes[q._rowId] || {};
   document.getElementById('noteInput').value = rec.note || '';
   renderStagePills(q);
+  document.getElementById('modalScore').innerHTML = renderScoreBreakdown(q);
   renderModalFollowUps(q);
 
   const emailBtn = document.getElementById('emailClientBtn');
@@ -2110,6 +2709,11 @@ async function loadData(isRetry){
 
     try{ state.templates = await loadConfig('templates'); }
     catch(e){ console.error('template load failed', e); state.templates = null; }
+
+    try{
+      const r = await loadConfig('recency');
+      if(r && RECENCY_PRESETS[r]) state.recency = r;
+    }catch(e){ console.error('recency load failed', e); }
 
     state.mapping = {};
     for(const k of Object.keys(autoMapping)){
