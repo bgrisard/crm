@@ -62,6 +62,8 @@ window.ANCHOR_CONFIG = {
     --purple-bg:#f5f3ff;
     --pink:#ec4899;
     --pink-bg:#fce7f3;
+    --cyan:#0e7490;
+    --cyan-bg:#cffafe;
     --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
     --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
@@ -303,17 +305,6 @@ window.ANCHOR_CONFIG = {
     white-space:nowrap;
   }
   thead th:hover{ color:#fff; }
-  thead tr#pipelineFilterRow th{
-    background:#fff;
-    border-bottom:1px solid var(--line);
-    padding:6px 8px;
-    position: sticky;
-    top: 33px;
-    z-index:9;
-    cursor:default;
-  }
-  thead tr#pipelineFilterRow th:hover{ color:inherit; }
-  thead tr#pipelineFilterRow th.row-accent{ padding:0 !important; }
   thead th .arrow{ margin-left:4px; opacity:0.6; font-size:10px; }
   tbody tr{ border-bottom:1px solid var(--slate-100); cursor:pointer; transition: background .1s; }
   tbody tr:hover{ background: var(--slate-100); }
@@ -322,7 +313,7 @@ window.ANCHOR_CONFIG = {
   .row-accent{ width:4px !important; padding:0 !important; }
   .row-accent div{ width:4px; height:100%; min-height:20px; }
   .accent-won{ background: var(--success); }
-  .accent-open{ background: var(--brass); }
+  .accent-open{ background: var(--cyan); }
   .accent-contacted{ background: var(--info); }
   .accent-followed_up{ background: var(--purple); }
   .accent-negotiating{ background: var(--pink); }
@@ -337,7 +328,7 @@ window.ANCHOR_CONFIG = {
     letter-spacing:0.2px;
   }
   .badge-won{ background: var(--success-bg); color: var(--success); }
-  .badge-open{ background: var(--warn-bg); color: var(--warn); }
+  .badge-open{ background: var(--cyan-bg); color: var(--cyan); }
   .badge-contacted{ background: var(--info-bg); color: var(--info); }
   .badge-followed_up{ background: var(--purple-bg); color: var(--purple); }
   .badge-negotiating{ background: var(--pink-bg); color: var(--pink); }
@@ -414,7 +405,7 @@ window.ANCHOR_CONFIG = {
   }
   .stage-pill:hover{ transform: translateY(-1px); }
   .stage-pill.selected{ box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; }
-  .stage-pill.sp-open{ background: var(--warn-bg); color: var(--warn); }
+  .stage-pill.sp-open{ background: var(--cyan-bg); color: var(--cyan); }
   .stage-pill.sp-contacted{ background: var(--info-bg); color: var(--info); }
   .stage-pill.sp-followed_up{ background: var(--purple-bg); color: var(--purple); }
   .stage-pill.sp-negotiating{ background: var(--pink-bg); color: var(--pink); }
@@ -531,13 +522,17 @@ window.ANCHOR_CONFIG = {
   .live-toast.show{ opacity:1; transform:translate(-50%, 0); }
 
   /* ---------- Lead scoring ---------- */
+  .score-cell{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
   .score-pill{
     display:inline-flex; align-items:center; gap:5px;
-    padding:3px 8px; border-radius:100px;
-    font-size:10px; font-weight:800; letter-spacing:0.4px; white-space:nowrap;
+    padding:3px 9px; border-radius:100px;
+    font-size:10px; font-weight:800; letter-spacing:0.5px; white-space:nowrap;
   }
-  .score-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
-  .score-pct{ font-family:var(--font-mono); font-weight:700; opacity:0.85; }
+  .score-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .score-pct{
+    font-family:var(--font-mono); font-size:13px; font-weight:700;
+    color: var(--navy-900);
+  }
   .score-hot{ background:var(--danger-bg); color:var(--danger); }
   .score-warm{ background:var(--warn-bg); color:var(--warn); }
   .score-cold{ background:var(--slate-100); color:var(--slate-500); }
@@ -805,6 +800,13 @@ window.ANCHOR_CONFIG = {
       <div class="toolbar">
         <input type="text" class="search-input" id="searchInput" placeholder="Search customer, ID, rep…">
         <select class="filter-select rep-filter-sync" id="filterRep"><option value="">All reps</option></select>
+        <div class="multiselect" id="stageMulti">
+          <button class="multiselect-toggle" id="stageMultiToggle">
+            <span id="stageMultiLabel">All stages</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="multiselect-menu" id="stageMultiMenu"></div>
+        </div>
         <button class="btn" id="clearFilters">Clear</button>
         <button class="btn" id="exportBtn">Export CSV</button>
         <div style="flex:1;"></div>
@@ -817,18 +819,10 @@ window.ANCHOR_CONFIG = {
         </div>
       </div>
 
-      <div class="multiselect" id="stageMulti" style="display:none;">
-        <button class="multiselect-toggle" id="stageMultiToggle">
-          <span id="stageMultiLabel">All stages</span>
-          <span class="caret">▾</span>
-        </button>
-        <div class="multiselect-menu" id="stageMultiMenu"></div>
-      </div>
-
       <div class="table-wrap">
         <div class="table-scroll">
           <table id="pipelineTable">
-            <thead><tr id="pipelineHead"></tr><tr id="pipelineFilterRow"></tr></thead>
+            <thead><tr id="pipelineHead"></tr></thead>
             <tbody id="pipelineBody"></tbody>
           </table>
         </div>
@@ -1034,7 +1028,7 @@ let state = {
   pageSize: 50,
   sortKey: null,
   sortDir: 'desc',
-  filters: { search: '', rep: '', stage: ['','contacted','followed_up','negotiating','lost'] },
+  filters: { search: '', rep: '', stage: ['','contacted','followed_up','negotiating'] },
   mailMode: 'desktop',
   dueScope: 'all'
 };
@@ -1722,6 +1716,7 @@ const PIPELINE_COLS = [
   {key:'_startDate', label:'Start Date'},
   {key:'_value', label:'Amount', num:true},
   {key:null, label:'Stage'},
+  {key:'_score', label:'Lead Score', num:true},
   {key:'_daysOld', label:'Days Old', num:true},
   {key:'_fu0Due', label:'Follow-up 1'},
   {key:'_fu1Due', label:'Follow-up 2'},
@@ -1771,8 +1766,9 @@ function renderScoreCell(q){
     return '<span style="color:var(--slate-300); font-size:11px;">—</span>';
   const pct = Math.round(q._score*100);
   const label = {hot:'HOT', warm:'WARM', cold:'COLD'}[q._bucket];
-  return `<span class="score-pill score-${q._bucket}" title="Estimated chance of booking">
-      <span class="score-dot"></span>${label} <span class="score-pct">${pct}%</span>
+  return `<span class="score-cell" title="Estimated chance of booking">
+      <span class="score-pill score-${q._bucket}"><span class="score-dot"></span>${label}</span>
+      <span class="score-pct">${pct}%</span>
     </span>`;
 }
 
@@ -1875,29 +1871,6 @@ function renderPipelineHead(){
       renderPipeline();
     });
   });
-  renderPipelineFilterRow();
-}
-
-// Second header row holding per-column filter controls. The stage multiselect
-// is moved (not recreated) so its listeners and state survive re-renders.
-function renderPipelineFilterRow(){
-  const fr = document.getElementById('pipelineFilterRow');
-  if(!fr) return;
-  const stageIdx = PIPELINE_COLS.findIndex(c=>c.label==='Stage');
-  if(!fr.dataset.built){
-    fr.innerHTML = '<th class="row-accent filter-cell"></th>' +
-      PIPELINE_COLS.map((c,i)=>`<th class="filter-cell" data-filter-col="${i}"></th>`).join('');
-    fr.dataset.built = '1';
-  }
-  const cell = fr.querySelector(`[data-filter-col="${stageIdx}"]`);
-  const ms = document.getElementById('stageMulti');
-  if(cell && ms && ms.parentElement !== cell){
-    ms.style.display = '';
-    cell.appendChild(ms);
-  }
-  // Sit the filter row directly beneath the label row when sticky.
-  const head = document.getElementById('pipelineHead');
-  if(head && head.offsetHeight) fr.style.top = head.offsetHeight + 'px';
 }
 
 function renderPipeline(){
@@ -1968,7 +1941,7 @@ function renderStageMultiselect(){
   const menu = document.getElementById('stageMultiMenu');
   if(!menu.dataset.built){
     menu.innerHTML = STAGES.map(s=>{
-      const swatchVar = {'':'--brass','contacted':'--info','followed_up':'--purple','negotiating':'--pink','won':'--success','lost':'--slate-300'}[s.value];
+      const swatchVar = {'':'--cyan','contacted':'--info','followed_up':'--purple','negotiating':'--pink','won':'--success','lost':'--slate-300'}[s.value];
       return `<label class="ms-option">
         <input type="checkbox" data-stage-val="${s.value}">
         <span class="ms-swatch" style="background:var(${swatchVar})"></span>
@@ -2001,9 +1974,10 @@ function renderStageMultiselect(){
   const label = document.getElementById('stageMultiLabel');
   const n = state.filters.stage.length;
   const allVals = STAGES.map(s2=>s2.value);
-  const isAllButWon = n === allVals.length-1 && !state.filters.stage.includes('won');
+  const excl = allVals.filter(v=>!state.filters.stage.includes(v));
   if(n === 0 || n === allVals.length) label.textContent = 'All stages';
-  else if(isAllButWon) label.textContent = 'All except Won';
+  else if(excl.length && excl.length <= 2 && n > 2)
+    label.textContent = 'All except ' + excl.map(v=>stageDef(v).label).join(' & ');
   else if(n === 1) label.textContent = stageDef(state.filters.stage[0]).label;
   else label.innerHTML = `Stages <span class="ms-count">${n}</span>`;
 }
