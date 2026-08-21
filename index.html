@@ -522,21 +522,24 @@ window.ANCHOR_CONFIG = {
   .live-toast.show{ opacity:1; transform:translate(-50%, 0); }
 
   /* ---------- Lead scoring ---------- */
-  .score-cell{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
   .score-pill{
-    display:inline-flex; align-items:center; gap:5px;
-    padding:3px 9px; border-radius:100px;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 10px; border-radius:100px;
     font-size:10px; font-weight:800; letter-spacing:0.5px; white-space:nowrap;
   }
   .score-dot{ width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .score-lab{ line-height:1; }
+  /* % sits inside the same pill, separated by a hairline rule */
   .score-pct{
-    font-family:var(--font-mono); font-size:13px; font-weight:700;
-    color: var(--navy-900);
+    font-family:var(--font-mono); font-size:12px; font-weight:700; line-height:1;
+    padding-left:7px; margin-left:1px;
+    border-left:1px solid currentColor;
+    opacity:0.95;
   }
-  .score-hot{ background:var(--danger-bg); color:var(--danger); }
-  .score-warm{ background:var(--warn-bg); color:var(--warn); }
-  .score-neutral{ background:var(--slate-100); color:var(--slate-500); }
-  .score-cold{ background:#dbeafe; color:#1e40af; }
+  .score-hot{     background:#fee2e2; color:#dc2626; }  /* red */
+  .score-warm{    background:#ffedd5; color:#9a3412; }  /* orange */
+  .score-neutral{ background:#fef9c3; color:#854d0e; }  /* yellow */
+  .score-cold{    background:#dbeafe; color:#1e40af; }  /* blue */
 
   /* Rep pills — stable colour per salesperson */
   .rep-pill{
@@ -1830,10 +1833,8 @@ function renderScoreCell(q){
   if(q._score === null || q._score === undefined)
     return '<span style="color:var(--slate-300); font-size:11px;">—</span>';
   const pct = Math.round(q._score*100);
-  const label = bandLabel(q._bucket);
-  return `<span class="score-cell" title="Estimated chance of booking">
-      <span class="score-pill score-${q._bucket}"><span class="score-dot"></span>${label}</span>
-      <span class="score-pct">${pct}%</span>
+  return `<span class="score-pill score-${q._bucket}" title="Estimated chance of booking">
+      <span class="score-dot"></span><span class="score-lab">${bandLabel(q._bucket)}</span><span class="score-pct">${pct}%</span>
     </span>`;
 }
 
@@ -1855,7 +1856,7 @@ function renderScoreBreakdown(q){
     </div>`;
   }).join('');
   return `<div class="score-head">
-      <span class="score-pill score-${q._bucket}"><span class="score-dot"></span>${bandLabel(q._bucket)}</span>
+      <span class="score-pill score-${q._bucket}"><span class="score-dot"></span><span class="score-lab">${bandLabel(q._bucket)}</span></span>
       <span class="score-big">${pct}%</span>
       <span class="score-vs">estimated chance of booking &middot; company average is ${basePct}%</span>
     </div>
